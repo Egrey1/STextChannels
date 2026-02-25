@@ -8,12 +8,13 @@ import aiohttp
 def firstConfig():
     load_dotenv()
 
-    deps.bot = deps.Bot(command_prefix="!", intents=Intents.all())
+    deps.bot = deps.Bot(command_prefix="$", intents=Intents.all())
     deps.TOKEN = getenv('TOKEN') # TOKEN HERE
 
     deps.DATABASE_MAIN_PATH = 'databases/main.db'
 
-    deps.global_http = aiohttp.ClientSession()
 
 async def secondConfig():
-    pass
+    deps.global_http = aiohttp.ClientSession()
+    deps.second_http = aiohttp.ClientSession()
+    deps.guild = await deps.bot.fetch_guild(1473038842704429180)
