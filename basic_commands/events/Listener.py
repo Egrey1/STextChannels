@@ -1,12 +1,11 @@
-from ..library import Cog, Message, con, deps, Row, Webhook, AllowedMentions
-import asyncio
+from ..library import Cog, Message, con, deps, Row, Webhook, AllowedMentions, List
 import logging
 
 logging.basicConfig(level=logging.INFO)
 
 
 class Listener(Cog):
-    def give_fetch(self, channel_id: int) -> dict | None:
+    def give_fetch(self, channel_id: int) -> List[dict] | None:
         connect = con(deps.DATABASE_MAIN_PATH)
         connect.row_factory = Row
         cursor = connect.cursor()
@@ -19,70 +18,78 @@ class Listener(Cog):
         fetches = cursor.fetchall()
         connect.close()
 
+        result: List[dict] = []
+
         for fetch in fetches:
             fetch = dict(fetch)
-            if str(channel_id) in fetch.get('text_channels', '').split(';'):
-                return fetch
+            channels = fetch.get('channels', '').split(';')
+            for channel in channels:
+                if str(channel_id) in channel.split(','):
+                    result.append(fetch)
 
-        return None
+        return result if result else None
 
     @Cog.listener()
     async def on_message(self, message: Message):
         if message.author.bot:
             return
 
-        fetch = self.give_fetch(message.channel.id)
-        if not fetch:
+        fetches = self.give_fetch(message.channel.id)
+        if not fetches:
             return
 
-        urls = [u for u in dict(fetch).get('webhooks_url', '').split(';') if u]
-        if not urls:
-            return
-        
+        for fetch in fetches:
+            # deps.global_http
+            urls = [
+                u.split(',')[1] 
+                for u in dict(fetch).get('channels', '').split(';') 
+                if u and u.split(',')[0] != str(message.channel.id)
+                ]
+            
+            if not urls:
+                return
+            
 
 
-        # results = await asyncio.gather(*coros, return_exceptions=True)
-        webhooks = []
-        for url in urls:
-            try:
-                w = Webhook.from_url(url, session=deps.global_http)
-                if w.channel_id != message.channel.id:
+            # results = await asyncio.gather(*coros, return_exceptions=True)
+            webhooks = []
+            for url in urls:
+                try:
+                    w = Webhook.from_url(url, session=deps.global_http)
                     webhooks.append(w)
-            except:
-                continue
+                except:
+                    continue
 
-        sent_ids = []
-        for webhook in webhooks:
-            if webhook.channel_id == message.channel.id:
-                continue
-            try:
-                sent = await webhook.send(
-                    content=message.content.replace('@', '`@`'),
-                    username=message.author.display_name,
-                    avatar_url=message.author.display_avatar.url,
-                    wait=True,
-                    allowed_mentions=AllowedMentions.none
+            sent_ids = []
+            for webhook in webhooks:
+                try:
+                    sent = await webhook.send(
+                        content=message.content,
+                        username=message.author.global_name,
+                        avatar_url=message.author.display_avatar.url,
+                        wait=True,
+                        allowed_mentions=AllowedMentions.none()
+                    )
+                    if sent.channel.id == message.channel.id:
+                        await sent.delete()
+                    else:
+                        sent_ids.append(str(sent.id) + ',' + (webhook.url))
+                except Exception:
+                    logging.exception('Failed to send message via webhook')
+
+            forwarded = ';'.join(sent_ids)
+            if forwarded:
+                connect = con(deps.DATABASE_MAIN_PATH)
+                cursor = connect.cursor()
+                cursor.execute(
+                    """
+                    INSERT INTO messages (original, anothers)
+                    VALUES (?, ?)
+                    """,
+                    (message.id, forwarded),
                 )
-                if sent.channel.id == message.channel.id:
-                    await sent.delete()
-                else:
-                    sent_ids.append(str(sent.id) + ',' + (webhook.url))
-            except Exception:
-                logging.exception('Failed to send message via webhook')
-
-        forwarded = ';'.join(sent_ids)
-        if forwarded:
-            connect = con(deps.DATABASE_MAIN_PATH)
-            cursor = connect.cursor()
-            cursor.execute(
-                """
-                INSERT INTO messages (original, anothers)
-                VALUES (?, ?)
-                """,
-                (message.id, forwarded),
-            )
-            connect.commit()
-            connect.close()
+                connect.commit()
+                connect.close()
 
     @Cog.listener()
     async def on_message_edit(self, before: Message, after: Message):
@@ -111,18 +118,23 @@ class Listener(Cog):
         if not forwarded_ids:
             return
 
-        fetch = self.give_fetch(before.channel.id)
-        if not fetch:
+        fetches = self.give_fetch(before.channel.id)
+        if not fetches:
             return
 
-        urls = [u for u in dict(fetch).get('webhooks_url', '').split(';') if u]
-        if not urls:
-            return
+        for fetch in fetches:
+            urls = [
+                u.split(',')
+                for u in dict(fetch).get('webhooks_url', '').split(';') 
+                if u
+                ]
+            if not urls:
+                return
 
-        for forw in forwarded_ids:
-            msg_id, url = tuple(forw.split(','))
-            webhook = Webhook.from_url(url, session=deps.global_http)
-            try:
-                await webhook.edit_message(message_id=int(msg_id), content=after.content)
-            except Exception:
-                logging.exception('Failed to edit forwarded message')
+            for forw in forwarded_ids:
+                msg_id, url = tuple(forw.split(','))
+                webhook = Webhook.from_url(url, session=deps.global_http)
+                try:
+                    await webhook.edit_message(message_id=int(msg_id), content=after.content)
+                except Exception:
+                    logging.exception('Failed to edit forwarded message')

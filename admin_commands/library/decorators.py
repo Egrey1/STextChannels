@@ -27,11 +27,11 @@ def transguild_admin(error_message='У вас нет прав на выполн�
             if not user:
                 raise ValueError(f'Не удалось определить пользователя в {func.__name__}')
             
-            user = deps.guild.get_member(user.id)
+            user = deps.capital.get_member(user.id)
             if not user:
                 raise ValueError('Не удалось найти пользователя в столичном сервере!')
             
-            if not any(1476193110592716880 == role.id for role in user.roles): # Исправить
+            if not any(deps.a_transguild.id == role.id for role in user.roles): # Исправить
                 for arg in args:
                     if hasattr(arg, 'channel') and arg.channel:
                         await arg.channel.send(error_message)

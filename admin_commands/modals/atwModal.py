@@ -28,28 +28,29 @@ class AtwModal(Modal):
             channel_id = interaction.channel_id
 
         try:
-            webhook = Webhook.from_url(webhook_url)
+            webhook = Webhook.from_url(webhook_url, session=deps.second_http)
             channel_id = int(channel_id)
         except ValueError:
             await interaction.response.send_message('Указан неверный URL')
             return
-        except:
+        except Exception as e:
             await interaction.response.send_message('Неверно указан ID канала')
+            print(e)
             return
         
-        if channel_id != webhook.channel_id:
-            await interaction.response.send_message('Указан неверный ID канала несоответсвующий вебхуку или наоборот')
-            return
+        # if channel_id != webhook.channel_id:
+        #     await interaction.response.send_message('Указан неверный ID канала несоответсвующий вебхуку или наоборот')
+        #     return
 
         connect = con(deps.DATABASE_MAIN_PATH)
         connect.row_factory = Row
         cursor = connect.cursor()
 
-        cursor.execute("""
+        cursor.execute(f"""
                        SELECT *
                        FROM shares
-                       WHERE name = ?
-                       """, (self.web_name))
+                       WHERE name = '{self.web_name}'
+                       """)
         fetch = cursor.fetchone()
         
         if not fetch:
@@ -57,25 +58,34 @@ class AtwModal(Modal):
             await interaction.response.send_message('Такого названия сети не существует!')
             return
         
-        new_webhooks_url = fetch['webhooks_url'] + ';' + webhook_url
-        new_text_channels = fetch['text_channels'] + ';' + str(channel_id)
+        # new_webhooks_url = (fetch['webhooks_url'] + ';' + webhook_url) if fetch['webhooks_url'] else webhook_url
+        # new_text_channels = (fetch['text_channels'] + ';' + str(channel_id)) if fetch['text_channels'] else str(channel_id)
+        channels = fetch['channels']
+        
         webhooks: List[Webhook] = []
-        for url in new_webhooks_url.split(';'):
+        for url in channels.split(';') if channels else '':
             try:
-                webhooks.append(Webhook.from_url(url))
+                webhooks.append(Webhook.from_url(url.split(',')[1], session=deps.second_http))
             except:
                 continue
 
         cursor.execute("""
                        UPDATE shares
-                       SET webhooks_url = ?, text_channels = ?
+                       SET channels = ?
                        WHERE name = ?
-                       """, (new_webhooks_url, new_text_channels, self.web_name))
+                       """, (
+                           (channels + ';' + str(channel_id) + ',' + webhook_url) 
+                           if channels else 
+                           (str(channel_id) + ',' + webhook_url), 
+                           self.web_name)
+                        )
         connect.commit()
         connect.close()
 
         embed = Embed(title='Сервер успешно добавлен! Вот новый список каналов:',
-                      description='\n'.join(webhook.guild.name + webhook.channel.name for webhook in webhooks)
+                      #description='\n'.join(webhook.guild.name + webhook.channel.name for webhook in webhooks)
+                      description='Пока недоступно для просмотра'
                       )
+        embed.set_footer(text='Будьте внимательны! Проверка на ID канала вебхука и указанный ID отсутствует')
 
         await interaction.response.send_message(embed=embed)
