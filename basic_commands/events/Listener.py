@@ -1,8 +1,5 @@
-from ..library import Cog, Message, con, deps, Row, Webhook, AllowedMentions, List
+from ..library import Cog, Message, con, deps, Row, Webhook, AllowedMentions, List, AuditLogAction
 import logging
-
-logging.basicConfig(level=logging.INFO)
-
 
 class Listener(Cog):
     def give_fetch(self, channel_id: int) -> List[dict] | None:
@@ -31,12 +28,31 @@ class Listener(Cog):
 
     @Cog.listener()
     async def on_message(self, message: Message):
-        if message.author.bot:
+        if (message.author.bot) or (message.content.startswith(deps.PREFIX)):
             return
 
         fetches = self.give_fetch(message.channel.id)
         if not fetches:
             return
+
+        # если сообщение является ответом на предыдущий, попытаться получить URL
+        header = ""
+        if message.reference and message.reference.message_id:
+            ref_id = message.reference.message_id
+            with con(deps.DATABASE_MAIN_PATH) as connect:
+                cursor = connect.cursor()
+                cursor.execute(
+                    "SELECT anothers FROM messages WHERE anothers LIKE ?",
+                    (f"{ref_id},%",),
+                )
+                row = cursor.fetchone()
+            if row:
+                anothers = row['anothers'] if isinstance(row, Row) else row[0]
+                for entry in str(anothers).split(';'):
+                    parts = entry.split(',')
+                    if parts[0] == str(ref_id) and len(parts) >= 3:
+                        header = f"Отвечая на сообщение {parts[2]}"
+                        break
 
         for fetch in fetches:
             # deps.global_http
@@ -49,7 +65,9 @@ class Listener(Cog):
             if not urls:
                 return
             
+            replied = message.reference
 
+            
 
             # results = await asyncio.gather(*coros, return_exceptions=True)
             webhooks = []
@@ -63,8 +81,11 @@ class Listener(Cog):
             sent_ids = []
             for webhook in webhooks:
                 try:
+                    content = message.content
+                    if header:
+                        content = content + "\n\n" + header
                     sent = await webhook.send(
-                        content=message.content,
+                        content=content,
                         username=message.author.global_name,
                         avatar_url=message.author.display_avatar.url,
                         wait=True,
@@ -73,7 +94,7 @@ class Listener(Cog):
                     if sent.channel.id == message.channel.id:
                         await sent.delete()
                     else:
-                        sent_ids.append(str(sent.id) + ',' + (webhook.url))
+                        sent_ids.append(str(sent.id) + ',' + (webhook.url) + ',' + (sent.jump_url))
                 except Exception:
                     logging.exception('Failed to send message via webhook')
 
@@ -124,8 +145,8 @@ class Listener(Cog):
 
         for fetch in fetches:
             urls = [
-                u.split(',')
-                for u in dict(fetch).get('webhooks_url', '').split(';') 
+                u.split(',')[1]
+                for u in dict(fetch).get('channels', '').split(';') 
                 if u
                 ]
             if not urls:

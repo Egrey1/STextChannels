@@ -1,7 +1,7 @@
 from .events import *
 from .commands import *
 
-class BasicCommands(Listener, TransguildCommand):
+class BasicCommands(Listener, TransguildsCommand, TransguildCommand, DeleteCommand):
     def __init__(self, bot):
         self.bot = bot
 

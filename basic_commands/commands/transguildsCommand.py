@@ -1,6 +1,6 @@
 from ..library import con, deps, hybrid_command, Context, Row, Embed
 
-class TransguildCommand:
+class TransguildsCommand:
     @hybrid_command(name='transguilds', aliases=['transgs', 'transes'])
     async def transguilds(self, ctx: Context):
         connect = con(deps.DATABASE_MAIN_PATH)

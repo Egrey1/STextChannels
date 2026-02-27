@@ -44,7 +44,7 @@ class AddCommand:
                 return
 
             async def if_is_not_interaction(interaction: Interaction):
-                if interaction.user == ctx.author:
+                if interaction.user.is_a_transguild:
                     await interaction.response.send_modal(modal)
                 else:
                     await interaction.response.send_message(
@@ -88,9 +88,11 @@ class AddCommand:
             try:
                 with con(deps.DATABASE_MAIN_PATH) as connect:
                     cursor = connect.cursor()
-                    cursor.execute(
-                        "DELETE FROM shares WHERE name = ?",
-                        (name,),
+                    cursor.execute("""
+                        DELETE 
+                        FROM shares 
+                        WHERE name = ?
+                        """, (name,),
                     )
                     connect.commit()
                 await ctx.send(f'Межсервер {name} успешно удален из базы')
