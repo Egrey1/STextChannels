@@ -156,7 +156,10 @@ async def on_sended_replaied(message: Message):
         
         fetch = fetch[0]
 
-        original = f'{message.id},{fetch.split(',')[1]},{message.jump_url}'
+        original = str(message.id) + ','
+        original += fetch.split(',')[1] + ','
+        original += message.jump_url
+
         cursor.execute("""
                         INSERT INTO messages (original, anothers)
                         VALUES (?, ?)

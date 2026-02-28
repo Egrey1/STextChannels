@@ -3,9 +3,10 @@ from ..library import hybrid_command, Embed, deps, Context
 class HelpCommand:
     @hybrid_command(name='help')
     async def help(self, ctx: Context):
+        temp = '`,`'.join(deps.PREFIX)
         embed = Embed(
             title='Административная справка по пользованию межсервером',
-            description=f'Все преффиксы: `{'`,`'.join(deps.PREFIX)}`'
+            description=f'Все преффиксы: `' + temp + '`'
         )
 
         embed.add_field(
