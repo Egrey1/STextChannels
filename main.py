@@ -7,8 +7,8 @@ async def load_extensions():
 
 async def on_ready():
     await load_extensions()
-    print(f'Бот {deps.bot.user} успешно запущен!')
     await config.secondConfig()
+    print(f'Бот {deps.bot.user} успешно запущен!')
 
 if __name__ == "__main__":
     config.firstConfig() 

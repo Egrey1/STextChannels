@@ -9,3 +9,5 @@ from sqlite3 import Row
 import dependencies as deps
 
 from typing import List
+
+import logging
