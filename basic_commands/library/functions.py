@@ -156,10 +156,11 @@ async def on_sended_replaied(message: Message):
         
         fetch = fetch[0]
 
+        original = f'{message.id},{fetch.split(',')[1]},{message.jump_url}'
         cursor.execute("""
                         INSERT INTO messages (original, anothers)
                         VALUES (?, ?)
-                        """, (f'{message.id},{fetch.split(',')[1]},{message.jump_url}', forwarded))
+                        """, (original, forwarded))
         connect.commit()
         connect.close()
 

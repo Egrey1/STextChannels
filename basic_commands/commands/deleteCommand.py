@@ -1,7 +1,6 @@
 from ..library import hybrid_command, Context, con, deps, Row, Webhook
 
 class DeleteCommand:
-
     @hybrid_command(name='delete-message', aliases=['delete_message', 'delmes', 'del-mes', 'del_mes', 'delete', 'message-delete', 'message_delete', 'удалить'])
     async def delete_message(self, ctx: Context):
         
@@ -47,3 +46,23 @@ class DeleteCommand:
         
         await ctx.reply('Не забудь удалить оригинальное сообщение! Все остальные уже были удалены в сети межсервера!', delete_after=3)
 
+    @hybrid_command(name='delete_history', aliases=['delete-history', 'del-history', 'del_history', 'history-delete', 'history_delete', 'удалить-историю'])
+    async def delete_history(self, ctx: Context):
+        if not (
+            (await ctx.author.is_m_transguild()) 
+            or 
+            (await ctx.author.is_a_transguild())
+        ):
+            await ctx.reply('У вас нет права вызывать эту команду!')
+            return
+        
+        connect = con(deps.DATABASE_MAIN_PATH)
+        cursor = connect.cursor()
+
+        cursor.execute("""
+                       DELETE FROM messages
+                       """)
+        connect.commit()
+        connect.close()
+
+        await ctx.send('Вся история сообщений удалена!')
