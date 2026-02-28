@@ -5,6 +5,7 @@ from os import getenv
 import aiohttp
 import discord as ds
 import classes as cls
+import logging
 
 def firstConfig():
     load_dotenv()
@@ -30,6 +31,8 @@ def firstConfig():
     ds.TextChannel.get_all_webs = cls.New_TextChannel.get_all_webs
 
     deps.Web = cls.Web
+
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 async def secondConfig():
