@@ -11,18 +11,21 @@ def firstConfig():
 
     deps.intents = ds.Intents.all()
 
-    deps.PREFIX = ('stc ', 'stc.', 'stc. ', '$$', '$$ ')
+    deps.PREFIX = ('stc ', 'stc.', 'stc. ', '$$', '$$ ', ';;', ';; ')
 
-    deps.bot = deps.Bot(command_prefix=deps.PREFIX, intents=deps.intents)
+    deps.bot = deps.Bot(command_prefix=deps.PREFIX, intents=deps.intents, help_command=None)
     deps.TOKEN = getenv('TOKEN') # TOKEN HERE
 
     deps.DATABASE_MAIN_PATH = 'databases/main.db'
 
     ds.Member.is_a_transguild = cls.NewMember.is_a_transguild
     ds.Member.from_capital = cls.NewMember.from_capital
+    ds.Member.is_m_transguild = cls.NewMember.is_m_transguild
 
     ds.User.is_a_transguild = cls.NewUser.is_a_transguild
     ds.User.from_capital = cls.NewUser.from_capital
+    ds.User.is_m_transguild = cls.NewUser.is_m_transguild
+
 
     ds.TextChannel.get_all_webs = cls.New_TextChannel.get_all_webs
 
@@ -33,5 +36,5 @@ async def secondConfig():
     deps.global_http = aiohttp.ClientSession()
     deps.second_http = aiohttp.ClientSession()
     deps.capital = await deps.bot.fetch_guild(1473038842704429180)
-    deps.a_transguild = deps.capital.get_role(1476193110592716880)
-    deps.m_transguild = deps.capital.get_role(1476633956945363196)
+    deps.a_transguild = await deps.capital.fetch_role(1476193110592716880)
+    deps.m_transguild = await deps.capital.fetch_role(1476633956945363196)

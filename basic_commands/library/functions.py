@@ -44,10 +44,9 @@ async def on_sended(message: Message):
             return
         
 
-        
 
         # results = await asyncio.gather(*coros, return_exceptions=True)
-        webhooks = []
+        webhooks: List[Webhook] = []
         for url in urls:
             try:
                 w = Webhook.from_url(url, session=deps.global_http)
@@ -58,11 +57,14 @@ async def on_sended(message: Message):
         sent_ids = []
         for webhook in webhooks:
             try:
+                files = [await attachment.to_file() for attachment in message.attachments] if message.attachments else []
+
                 sent = await webhook.send(
                     content=message.content,
                     username=message.author.global_name,
                     avatar_url=message.author.display_avatar.url,
                     wait=True,
+                    files=files[:10],
                     allowed_mentions=AllowedMentions.none()
                 )
                 if sent.channel.id == message.channel.id:
@@ -113,12 +115,16 @@ async def on_sended_replaied(message: Message):
         for webmes in s.split(';'):
             mes_id, webhook_url, mes_url = webmes.split(',')[0], webmes.split(',')[1], webmes.split(',')[2]
 
+            files = [await attachment.to_file() for attachment in message.attachments] if message.attachments else []
+            files += [await sticker.to_file() for sticker in message.stickers] if message.stickers else []
+
             webhook: Webhook = Webhook.from_url(webhook_url, session=deps.global_http)
             
             sent = await webhook.send(
-                    content=f'> -# Ответ на {mes_url}\n' + message.content,
+                    content=f'> -# Ответ на {mes_url}\n\n' + message.content,
                     username=message.author.global_name,
                     avatar_url=message.author.display_avatar.url,
+                    files=files[:10],
                     wait=True,
                     allowed_mentions=AllowedMentions.none()
                 )

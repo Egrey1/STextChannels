@@ -5,12 +5,17 @@ import logging
 class Listener(Cog):
     @Cog.listener()
     async def on_message(self, message: Message):
-        if (message.author.bot) or (message.content.startswith(deps.PREFIX)):
+        if (
+            (message.author.bot) or 
+            (message.content.startswith(deps.PREFIX)) or 
+            ('https://discord.gg/' in message.content)
+            ):
             return
         
         if message.reference:
             await on_sended_replaied(message)
             return
+        
         
 
         await on_sended(message)

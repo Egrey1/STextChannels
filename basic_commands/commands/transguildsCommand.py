@@ -1,7 +1,7 @@
 from ..library import con, deps, hybrid_command, Context, Row, Embed
 
 class TransguildsCommand:
-    @hybrid_command(name='transguilds', aliases=['transgs', 'transes'])
+    @hybrid_command(name='transguilds', aliases=['transgs', 'transes', 'межсервера', "сети"])
     async def transguilds(self, ctx: Context):
         connect = con(deps.DATABASE_MAIN_PATH)
         connect.row_factory = Row

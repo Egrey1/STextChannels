@@ -8,6 +8,10 @@ class NewMember(Member):
         mem = await self.from_capital()
         return any(deps.a_transguild.id == role.id for role in mem.roles) if mem else False
     
+    async def is_m_transguild(self) -> bool:
+        mem = await self.from_capital()
+        return any(deps.m_transguild.id == role.id for role in mem.roles) if mem else False
+    
 class NewUser(User):
     async def from_capital(self) -> Member:
         return await deps.capital.fetch_member(self.id)

@@ -5,7 +5,7 @@ class AddCommand:
     @hybrid_command(
         name='add-to-web',
         description='Присоединить текстовый канал к глобальной сети межсервера',
-        aliases=['atw']
+        aliases=['atw', 'ксети', "к-сети", "к_сети"]
     )
     @describe(option="Опция команды", name='Название межсерверной сети')
     async def add_to_web(self, ctx: Context, option: str | None = None, name: str | None = None):

@@ -3,7 +3,7 @@ from ..library import hybrid_command, deps, con, Context, Row, Embed
 class TransguildCommand:
     @hybrid_command(
         name='transguild',
-        aliases=['transg', 'trans']
+        aliases=['transg', 'trans', 'межсервер', "сеть"]
     )
     async def transguild(self, ctx: Context):
         connect = con(deps.DATABASE_MAIN_PATH)
