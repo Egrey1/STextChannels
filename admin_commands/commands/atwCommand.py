@@ -14,7 +14,10 @@ class AddCommand:
         """
 
         # базовая проверка прав
-        if not await ctx.author.is_a_transguild():
+        if (
+            (not await ctx.author.is_a_transguild()) or not
+            (ctx.author.guild_permissions.administrator and option == 'remove')
+            ):
             await ctx.send('У вас нет прав на использование этой команды')
             return
 
@@ -34,7 +37,8 @@ class AddCommand:
 
         # стандартизируем название опции
         option = option.lower()
-        if option == 'add':
+        if (option == 'add') or (name == None) and (name != 'remove'):
+            name = option
             if not name:
                 await ctx.send('Укажите название межсерверной сети', ephemeral=True)
                 return

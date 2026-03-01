@@ -6,6 +6,36 @@ import aiohttp
 import discord as ds
 import classes as cls
 import logging
+from sqlite3 import connect as con
+
+def sql_creates():
+    connect = con(deps.DATABASE_MAIN_PATH)
+    cursor = connect.cursor()
+
+    cursor.execute("""
+                   CREATE TABLE IF NOT EXISTS "messages" (
+                        "original"	TEXT,
+                        "anothers"	TEXT
+                    )
+                   """)
+
+    cursor.execute("""
+                   CREATE TABLE IF NOT EXISTS "shares" (
+                        "name"	TEXT UNIQUE,
+                        "description"	TEXT,
+                        "channels"	TEXT
+                    )
+                   """)
+
+    cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS "users" (
+                        "user_id"	TEXT UNIQUE,
+                        "muted_up"	TEXT,
+                        "where_muted"	TEXT
+                    )
+                   """)
+    connect.commit()
+    connect.close()
 
 def firstConfig():
     load_dotenv()
@@ -18,19 +48,31 @@ def firstConfig():
     deps.TOKEN = getenv('TOKEN') # TOKEN HERE
 
     deps.DATABASE_MAIN_PATH = 'databases/main.db'
+    sql_creates()
 
     ds.Member.is_a_transguild = cls.NewMember.is_a_transguild
     ds.Member.from_capital = cls.NewMember.from_capital
     ds.Member.is_m_transguild = cls.NewMember.is_m_transguild
+    ds.Member.muted = cls.NewMember.muted
+    ds.Member.where_muted = cls.NewMember.where_muted
+    ds.Member.mute_web = cls.NewMember.mute_web
+    ds.Member.unmute_web = cls.NewMember.unmute_web
+    
 
     ds.User.is_a_transguild = cls.NewUser.is_a_transguild
     ds.User.from_capital = cls.NewUser.from_capital
     ds.User.is_m_transguild = cls.NewUser.is_m_transguild
+    ds.User.muted = cls.NewUser.muted
+    ds.User.where_muted = cls.NewUser.where_muted
+    ds.User.mute_web = cls.NewUser.mute_web
+    ds.User.unmute_web = cls.NewUser.unmute_web
 
 
     ds.TextChannel.get_all_webs = cls.New_TextChannel.get_all_webs
 
     deps.Web = cls.Web
+    deps.WebhookMessageSended = cls.WebhookMessageSended
+    deps.WebhookMessagesSended = cls.WebhookMessagesSended
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 

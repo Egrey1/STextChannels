@@ -9,6 +9,7 @@ async def load_extensions():
 async def on_ready():
     await load_extensions()
     await config.secondConfig()
+    await deps.bot.tree.sync()
     logging.info(f'Бот {deps.bot.user} успешно запущен!')
 
 if __name__ == "__main__":
