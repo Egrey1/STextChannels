@@ -1,4 +1,4 @@
-from ..library import hybrid_command, Context, deps, describe, transguild_admin, Interaction, View, Button, con, Embed
+from ..library import hybrid_command, Context, deps, describe, transguild_admin, Interaction, View, Button, con, Embed, logging
 from ..modals import AtwModal
 
 class AddCommand:
@@ -15,7 +15,7 @@ class AddCommand:
 
         # базовая проверка прав
         if (
-            (not await ctx.author.is_a_transguild()) or not
+            (not await ctx.author.is_a_transguild()) and not
             (ctx.author.guild_permissions.administrator and option == 'remove')
             ):
             await ctx.send('У вас нет прав на использование этой команды')
@@ -37,12 +37,13 @@ class AddCommand:
 
         # стандартизируем название опции
         option = option.lower()
-        if (option == 'add') or (name == None) and (name != 'remove'):
-            name = option
+        if (option == 'add') or ((name == None) and (option != 'remove')):
+            name = option if name is None else name
             if not name:
                 await ctx.send('Укажите название межсерверной сети', ephemeral=True)
                 return
-            modal = AtwModal(name)
+            
+            modal = AtwModal(name, ctx.bot_permissions.manage_webhooks)
             if ctx.interaction:
                 await ctx.interaction.response.send_modal(modal)
                 return
@@ -82,8 +83,40 @@ class AddCommand:
                 )
 
         elif option == 'remove':
+            try:
+                with deps.main_db as connect:
+                    cursor = connect.cursor()
+
+                    cursor.execute("""
+                                   SELECT *
+                                   FROM shares
+                                   WHERE channels LIKE ?
+                                   """, (f'%{ctx.channel.id},%', ))
+                    fetches = cursor.fetchall()
+                    names = []
+
+                    if not fetches:
+                        await ctx.send('Этот канал не состоял ни в одном межсервере!', ephemeral=True)
+
+                    for fetch in fetches:
+                        names.append(fetch['name'])
+                        ifirst = fetch['channels'].find(str(ctx.channel.id))
+                        rfirst = fetch['channels'].find(';', ifirst)
+                        rfirst = rfirst if rfirst != -1 else len(fetch['channels']) - 1
+                        channels_to_delete = fetch['channels'][ifirst:rfirst + 1]
+                        new_channels = fetch['channels'].replace(channels_to_delete, '').replace(',,', ',')
+                        new_channels = new_channels[:-1] if new_channels[-1] == ';' else new_channels
+                        cursor.execute("""
+                                       UPDATE shares
+                                       SET channels = ?
+                                       WHERE name = ?
+                                       """, (new_channels, fetch['name']))
+                    cursor.close()
+
+                    await ctx.send('Ваш канал успешно удален из всех межсерверов! Вот их список: ' + ', '.join(names), ephemeral=True)
+            except Exception as e:
+                logging.error(f'Ошибка в remove_to_web: {e}')
             # TODO: реализовать удаление канала из сети
-            await ctx.send('Опция remove пока не реализована', ephemeral=True)
 
         elif option == 'delete':
             if not name:

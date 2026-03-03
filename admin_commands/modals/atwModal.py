@@ -1,7 +1,7 @@
 from ..library import deps, Modal, TextInput, Interaction, Webhook, logging, Embed, List
 
 class AtwModal(Modal):
-    def __init__(self, web_name: str):
+    def __init__(self, web_name: str, manage_webhooks: bool):
         super().__init__(title='Добаление нового канала к сети межсервера')
 
         self.channel_id = TextInput(
@@ -12,10 +12,11 @@ class AtwModal(Modal):
         )
         self.webhook_url = TextInput(
             label='Введите URL вебхука',
-            placeholder='https://.......',
-            required=True
+            placeholder='https://.......' if not manage_webhooks else 'Пусто для автосоздания',
+            required= not manage_webhooks
         )
         self.web_name = web_name
+        self.manage_webhooks = manage_webhooks
 
         self.add_item(self.channel_id)
         self.add_item(self.webhook_url)
@@ -26,6 +27,10 @@ class AtwModal(Modal):
 
         if not channel_id:
             channel_id = interaction.channel_id
+
+        if self.manage_webhooks and not webhook_url:
+            webhook = await interaction.channel.create_webhook(name='Межсерверная сеть (телемост)', reason='Применено свойство автосоздания вебхука')
+            webhook_url = webhook.url
 
         try:
             webhook = Webhook.from_url(webhook_url, session=deps.second_http)

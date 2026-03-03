@@ -1,7 +1,7 @@
 from ..library import Context, hybrid_command, File, deps
 
 class SendDb:
-    @hybrid_command(name='send db', aliases=['send_db'], description='Доступно только Егрею Великому')
+    @hybrid_command(name='send-db', aliases=['send_db'], description='Доступно только Егрею Великому')
     async def send_db(self, ctx: Context):
         if ctx.author.id == 820595582027956247: #@volkunov
             file = File(deps.DATABASE_MAIN_PATH)

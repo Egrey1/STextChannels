@@ -50,6 +50,7 @@ def firstConfig():
     deps.intents.message_content = True
     deps.intents.dm_messages = True
     deps.intents.guild_messages = True
+    deps.intents.webhooks = True
 
 
     deps.PREFIX = ('stc ', 'stc.', 'stc. ', '$$', '$$ ', ';;', ';; ')
@@ -58,7 +59,7 @@ def firstConfig():
     deps.TOKEN = getenv('TOKEN') # TOKEN HERE
 
     deps.DATABASE_MAIN_PATH = 'databases/main.db'
-    deps.main_db = con(deps.DATABASE_MAIN_PATH)
+    deps.main_db = con(deps.DATABASE_MAIN_PATH, check_same_thread=False)
     deps.main_db.row_factory = Row
     sql_creates()
 

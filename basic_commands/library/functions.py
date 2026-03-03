@@ -4,7 +4,6 @@ from .modules import Message, con, Row, deps, Webhook, logging, AllowedMentions,
 def give_fetch(channel_id: int) -> List[dict] | None:
     try:
         with deps.main_db as connect:
-            connect.row_factory = Row
             cursor = connect.cursor()
             cursor.execute(
                 """
@@ -13,12 +12,15 @@ def give_fetch(channel_id: int) -> List[dict] | None:
                 """
             )
             fetches = cursor.fetchall()
-            connect.close()
+            cursor.close()
 
             result: List[dict] = []
 
             for fetch in fetches:
                 fetch = dict(fetch) 
+                if not fetch['channels']:
+                    continue
+                
                 channels = fetch.get('channels', ';').split(';')
                 for channel in channels:
                     if str(channel_id) in channel.split(','):
