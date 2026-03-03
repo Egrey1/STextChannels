@@ -7,40 +7,50 @@ import discord as ds
 import classes as cls
 import logging
 from sqlite3 import connect as con
+from sqlite3 import Row
 
 def sql_creates():
-    connect = con(deps.DATABASE_MAIN_PATH)
-    cursor = connect.cursor()
+    try:
+        with deps.main_db as connect:
+            cursor = connect.cursor()
 
-    cursor.execute("""
-                   CREATE TABLE IF NOT EXISTS "messages" (
-                        "original"	TEXT,
-                        "anothers"	TEXT
-                    )
-                   """)
+            cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS "messages" (
+                                "original"	TEXT,
+                                "anothers"	TEXT
+                            )
+                        """)
 
-    cursor.execute("""
-                   CREATE TABLE IF NOT EXISTS "shares" (
-                        "name"	TEXT UNIQUE,
-                        "description"	TEXT,
-                        "channels"	TEXT
-                    )
-                   """)
+            cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS "shares" (
+                                "name"	TEXT UNIQUE,
+                                "description"	TEXT,
+                                "channels"	TEXT
+                            )
+                        """)
 
-    cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS "users" (
-                        "user_id"	TEXT UNIQUE,
-                        "muted_up"	TEXT,
-                        "where_muted"	TEXT
-                    )
-                   """)
-    connect.commit()
-    connect.close()
+            cursor.execute("""
+                            CREATE TABLE IF NOT EXISTS "users" (
+                                "user_id"	TEXT UNIQUE,
+                                "muted_up"	TEXT,
+                                "where_muted"	TEXT
+                            )
+                        """)
+            connect.commit()
+            cursor.close()
+    except Exception as e:
+        logging.error(f'Ошибка при создании таблиц: {e}')
+        return
 
 def firstConfig():
     load_dotenv()
 
-    deps.intents = ds.Intents.all()
+    deps.intents = ds.Intents()
+    deps.intents.members = True
+    deps.intents.message_content = True
+    deps.intents.dm_messages = True
+    deps.intents.guild_messages = True
+
 
     deps.PREFIX = ('stc ', 'stc.', 'stc. ', '$$', '$$ ', ';;', ';; ')
 
@@ -48,6 +58,8 @@ def firstConfig():
     deps.TOKEN = getenv('TOKEN') # TOKEN HERE
 
     deps.DATABASE_MAIN_PATH = 'databases/main.db'
+    deps.main_db = con(deps.DATABASE_MAIN_PATH)
+    deps.main_db.row_factory = Row
     sql_creates()
 
     ds.Member.is_a_transguild = cls.NewMember.is_a_transguild

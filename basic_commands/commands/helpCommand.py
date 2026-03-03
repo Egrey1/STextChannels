@@ -33,6 +33,11 @@ class HelpCommand:
             value='Выводит все межсерверные сети',
             inline=False
         )
+        embed.add_field(
+            name='$$mute',
+            value='Мьютит участника во всех межсерверных сетях. Пока не протестировано, лучше не использовать, возжно размьютить уже нельзя будет',
+            inline=False
+        )
         embed.set_footer(
             text='Сделано с любовью Егреем',
             icon_url='https://images-ext-1.discordapp.net/external/N1nHsFN90HGc4BY2qTCYZ9Ip-vJ-UrfMUU5yfVc3NSg/https/cdn.discordapp.com/avatars/820595582027956247/ce03d2bc7e2cd21fe0551d02828aa2ff.png?format=webp&quality=lossless&width=141&height=141'

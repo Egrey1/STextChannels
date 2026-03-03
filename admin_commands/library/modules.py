@@ -1,7 +1,7 @@
 
 from discord.ext.commands import hybrid_command, Context, Cog, Bot
 from discord.app_commands import describe
-from discord import Message, Member, User, Interaction, Webhook, Embed
+from discord import Message, Member, User, Interaction, Webhook, Embed, File
 from discord.ui import Modal, TextInput, View, Button
 
 import dependencies as deps
@@ -12,3 +12,4 @@ from sqlite3 import Row
 
 from typing import List
 import datetime
+import logging

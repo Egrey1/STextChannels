@@ -1,90 +1,105 @@
-from ..library import con, deps, Row, List, Dict
+from ..library import con, deps, Row, List, Dict, logging
 
 class Web:
     def __init__(self, name: str | None = None):
-        connect = con(deps.DATABASE_MAIN_PATH)
-        connect.row_factory = Row
-        cursor = connect.cursor()
+        try: 
+            with deps.main_db as connect:
+                cursor = connect.cursor()
 
-        cursor.execute("""
-                       SELECT *
-                       FROM shares
-                       WHERE name = ?
-                       """, (name, ))
-        fetch = cursor.fetchone()
-        connect.close()
+                cursor.execute("""
+                            SELECT *
+                            FROM shares
+                            WHERE name = ?
+                            """, (name, ))
+                fetch = cursor.fetchone()
+                cursor.close()
 
-        self.name = fetch['name']
-        self.description = fetch['description']
-        self.channels = fetch['channels']
-        self.groups: List[Dict[int, str]]
+                self.name = fetch['name']
+                self.description = fetch['description']
+                self.channels = fetch['channels']
+                self.groups: List[Dict[int, str]]
 
-        for group in fetch['channels']:
-            d = {
-                'channel_id': int(group.split(',')[0]),
-                'webhook_url': group.split(',')[1]
-            }
-            self.groups.append(d)
+                for group in fetch['channels']:
+                    d = {
+                        'channel_id': int(group.split(',')[0]),
+                        'webhook_url': group.split(',')[1]
+                    }
+                    self.groups.append(d)
+        except Exception as e:
+            logging.error(f'Ошибка в Web: {e}')
+
 
     def set_name(self, new_name: str):
-        connect = con(deps.DATABASE_MAIN_PATH)
-        cursor = connect.cursor()
+        try:
+            with deps.main_db as connect:
+                cursor = connect.cursor()
 
-        cursor.execute("""
-                       UPDATE shares
-                       SET name = ?
-                       WHERE name = ?
-                       """, (new_name, self.name))
-        connect.commit()
-        connect.close()
-        self.name = new_name
+                cursor.execute("""
+                            UPDATE shares
+                            SET name = ?
+                            WHERE name = ?
+                            """, (new_name, self.name))
+                connect.commit()
+                cursor.close()
+                self.name = new_name
+        except Exception as e:
+            logging.error(f'Ошибка в set_name: {e}')
     
     def set_description(self, new_description: str):
-        connect = con(deps.DATABASE_MAIN_PATH)
-        cursor = connect.cursor()
+        try:
+            with deps.main_db as connect:
+                cursor = connect.cursor()
 
-        cursor.execute("""
-                       UPDATE shares
-                       SET description = ?
-                       WHERE name = ?
-                       """, (new_description, self.name))
-        connect.commit()
-        connect.close()
-        self.description = new_description
+                cursor.execute("""
+                            UPDATE shares
+                            SET description = ?
+                            WHERE name = ?
+                            """, (new_description, self.name))
+                connect.commit()
+                cursor.close()
+                self.description = new_description
+        except Exception as e:
+            logging.error(f'Ошибка в set_description: {e}')
 
     def set_channels(self, channels: str):
-        connect = con(deps.DATABASE_MAIN_PATH)
-        cursor = connect.cursor()
+        try:
+            with deps.main_db as connect:
+                cursor = connect.cursor()
 
-        cursor.execute("""
-                       UPDATE shares
-                       SET channels = ?
-                       WHERE name = ?
-                       """, (channels, self.name))
-        connect.commit()
-        connect.close()
+                cursor.execute("""
+                            UPDATE shares
+                            SET channels = ?
+                            WHERE name = ?
+                            """, (channels, self.name))
+                connect.commit()
+                cursor.close()
+        except Exception as e:
+            logging.error(f'Ошибка в set_channels: {e}')
     
     def add_channel(self, channel_id: int, webhook_url: str):
-        connect = con(deps.DATABASE_MAIN_PATH)
-        cursor = connect.cursor()
+        try:
+            with deps.main_db as connect:
+                cursor = connect.cursor()
 
-        self.channels = self.channels + ';' + str(channel_id) + ',' + webhook_url if self.channels else str(channel_id) + ',' + webhook_url
+                self.channels = self.channels + ';' + str(channel_id) + ',' + webhook_url if self.channels else str(channel_id) + ',' + webhook_url
 
-        cursor.execute("""
-                       UPDATE shares
-                       SET channels = ?
-                       WHERE name = ?
-                       """, (self.channels, self.name)
-                       )
-        connect.commit()
-        connect.close()
+                cursor.execute("""
+                            UPDATE shares
+                            SET channels = ?
+                            WHERE name = ?
+                            """, (self.channels, self.name)
+                            )
+                connect.commit()
+                cursor.close()
 
-        self.groups.append(
-            {
-                'channel_id': channel_id,
-                'webhook_url': webhook_url
-            }
-        )
+                self.groups.append(
+                    {
+                        'channel_id': channel_id,
+                        'webhook_url': webhook_url
+                    }
+                )
+        except Exception as e:
+            logging.error(f'Ошибка в add_channel: {e}')
 
 class WebhookMessageSended:
     
@@ -124,44 +139,49 @@ class WebhookMessageSended:
             self.author_id = str(author_id)
             self.channel_id = str(channel_id)
         else:
-            connect = con(deps.DATABASE_MAIN_PATH)
-            cursor = connect.cursor()
+            try:
+                with deps.main_db as connect:
+                    cursor = connect.cursor()
 
-            need = (str(message_id) if message_id else
-                    webhook_url if webhook_url else
-                    message_url if message_url else
-                    str(author_id) if author_id else 
-                    str(channel_id) if channel_id else None)
-            
-            if need is None:
-                raise ValueError('Неправильные параметры конструктора')
-            
-            cursor.execute("""
-                            SELECT anothers
-                            FROM messages
-                            WHERE anothers LIKE ?
-                            """, ('%' + need + '%', ))
-            fetch = cursor.fetchone()[0]
+                    need = (str(message_id) if message_id else
+                            webhook_url if webhook_url else
+                            message_url if message_url else
+                            str(author_id) if author_id else 
+                            str(channel_id) if channel_id else None)
+                    
+                    if need is None:
+                        raise ValueError('Неправильные параметры конструктора')
+                    
+                    cursor.execute("""
+                                    SELECT anothers
+                                    FROM messages
+                                    WHERE anothers LIKE ?
+                                    """, ('%' + need + '%', ))
+                    fetch = cursor.fetchone()[0]
 
-            if not fetch:
-                cursor.execute("""
-                               SELECT original
-                               FROM messages
-                               WHERE anothers LIKE ?
-                               """, ('%' + need + '%', ))
-                fetch = cursor.fetchone()[0]
-                if not fetch:
-                    raise ValueError('Неправильные параметры конструктора')
-                
-                splited = fetch.split(',')
-            else:
-                ineed = fetch.find(need)
-                fneed = fetch.find(need, ineed)
-                lneed = fetch.rfind(need, 0, ineed)
-                splited = fetch[fneed+1 : lneed].split(',')
+                    if not fetch:
+                        cursor.execute("""
+                                    SELECT original
+                                    FROM messages
+                                    WHERE anothers LIKE ?
+                                    """, ('%' + need + '%', ))
+                        fetch = cursor.fetchone()[0]
+                        cursor.close()
+                        if not fetch:
+                            raise ValueError('Неправильные параметры конструктора')
+                        
+                        splited = fetch.split(',')
+                    else:
+                        cursor.close()
+                        ineed = fetch.find(need)
+                        fneed = fetch.find(need, ineed)
+                        lneed = fetch.rfind(need, 0, ineed)
+                        splited = fetch[fneed+1 : lneed].split(',')
 
-            self.message_id, self.webhook_url, self.message_url, self.author_id, self.channel_id = (
-            splited[0], splited[1], splited[2], splited[3], splited[4])
+                    self.message_id, self.webhook_url, self.message_url, self.author_id, self.channel_id = (
+                    splited[0], splited[1], splited[2], splited[3], splited[4])
+            except Exception as e:
+                logging.error(f'Ошибка в WebhookMessageSenden: {e}')
 
 
 class WebhookMessagesSended:
@@ -170,40 +190,43 @@ class WebhookMessagesSended:
             self.original = original
             self.anothers = anothers
         else:
-            connect = con(deps.DATABASE_MAIN_PATH)
-            connect.row_factory = Row
-            cursor = connect.cursor()
+            try:
+                with deps.main_db as connect:
+                    connect.row_factory = Row
+                    cursor = connect.cursor()
 
-            cursor.execute("""
-                           SELECT *
-                           FROM messages
-                           WHERE original LIKE ?
-                           OR anothers LIKE ?
-                           """, (f'%{message_id}%', f'%{message_id}%'))
-            fetch = cursor.fetchone()
-            connect.close()
+                    cursor.execute("""
+                                SELECT *
+                                FROM messages
+                                WHERE original LIKE ?
+                                OR anothers LIKE ?
+                                """, (f'%{message_id}%', f'%{message_id}%'))
+                    fetch = cursor.fetchone()
+                    cursor.close()
 
-            if not fetch:
-                raise ValueError('Неправильные параметры конструктора')
-            original = fetch['original']
-            anothers = fetch['anothers']
+                    if not fetch:
+                        raise ValueError('Неправильные параметры конструктора')
+                    original = fetch['original']
+                    anothers = fetch['anothers']
 
-            original = WebhookMessageSended(
-                                 original.split(',')[0], 
-                                 original.split(',')[1], 
-                                 original.split(',')[2], 
-                                 original.split(',')[3],
-                                 original.split(',')[4])
-            new_anothers = []
-            for another in anothers.split(';'):
-                new_anothers.append(WebhookMessageSended(
-                                     another.split(',')[0], 
-                                     another.split(',')[1], 
-                                     another.split(',')[2], 
-                                     another.split(',')[3],
-                                     another.split(',')[4]))
-            self.original = original
-            self.anothers: List[WebhookMessageSended] = new_anothers
+                    original = WebhookMessageSended(
+                                        original.split(',')[0], 
+                                        original.split(',')[1], 
+                                        original.split(',')[2], 
+                                        original.split(',')[3],
+                                        original.split(',')[4])
+                    new_anothers = []
+                    for another in anothers.split(';'):
+                        new_anothers.append(WebhookMessageSended(
+                                            another.split(',')[0], 
+                                            another.split(',')[1], 
+                                            another.split(',')[2], 
+                                            another.split(',')[3],
+                                            another.split(',')[4]))
+                    self.original = original
+                    self.anothers: List[WebhookMessageSended] = new_anothers
+            except Exception as e:
+                logging.error(f'Ошибка в WebhookMessagesSended: {e}')
 
 
     def load(self):
@@ -222,12 +245,15 @@ class WebhookMessagesSended:
             anothers += self.anothers[another].channel_id
             anothers += ';' if another != len(self.anothers) - 1 else ''
 
-        connect = con(deps.DATABASE_MAIN_PATH)
-        cursor = connect.cursor()
+        try:
+            with deps.main_db as connect:
+                cursor = connect.cursor()
 
-        cursor.execute("""
-                       INSERT INTO messages (original, anothers)
-                       VALUES (?, ?)
-                       """, (original, anothers))
-        connect.commit()
-        connect.close()
+                cursor.execute("""
+                            INSERT INTO messages (original, anothers)
+                            VALUES (?, ?)
+                            """, (original, anothers))
+                connect.commit()
+                cursor.close()
+        except Exception as e:
+            logging.info(f'Ошибка в load: {e}')

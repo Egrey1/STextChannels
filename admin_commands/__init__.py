@@ -1,7 +1,7 @@
 from .library import Cog, Bot
-from .commands import AddCommand, MuteCommand
+from .commands import AddCommand, MuteCommand, SendDb
 
-class AdminCog(Cog, AddCommand, MuteCommand):
+class AdminCog(Cog, AddCommand, MuteCommand, SendDb):
     def __init__(self, bot):
         super().__init__()
         self.bot = bot

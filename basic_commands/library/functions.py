@@ -2,28 +2,32 @@ from .modules import Message, con, Row, deps, Webhook, logging, AllowedMentions,
 
 
 def give_fetch(channel_id: int) -> List[dict] | None:
-    connect = con(deps.DATABASE_MAIN_PATH)
-    connect.row_factory = Row
-    cursor = connect.cursor()
-    cursor.execute(
-        """
-        SELECT *
-        FROM shares
-        """
-    )
-    fetches = cursor.fetchall()
-    connect.close()
+    try:
+        with deps.main_db as connect:
+            connect.row_factory = Row
+            cursor = connect.cursor()
+            cursor.execute(
+                """
+                SELECT *
+                FROM shares
+                """
+            )
+            fetches = cursor.fetchall()
+            connect.close()
 
-    result: List[dict] = []
+            result: List[dict] = []
 
-    for fetch in fetches:
-        fetch = dict(fetch) 
-        channels = fetch.get('channels', ';').split(';')
-        for channel in channels:
-            if str(channel_id) in channel.split(','):
-                result.append(fetch)
+            for fetch in fetches:
+                fetch = dict(fetch) 
+                channels = fetch.get('channels', ';').split(';')
+                for channel in channels:
+                    if str(channel_id) in channel.split(','):
+                        result.append(fetch)
 
-    return result if result else None
+            return result if result else None
+    except Exception as e:
+        logging.error(f'Ошибка в give_fetch: {e}')
+        return None
 
 
 async def on_sended(message: Message):
@@ -170,19 +174,23 @@ async def on_sended_replaied(message: Message):
 
 
 async def on_edited(before: Message, after: Message):
-    connect = con(deps.DATABASE_MAIN_PATH)
-    connect.row_factory = Row
-    cursor = connect.cursor()
-    cursor.execute(
-        """
-        SELECT anothers
-        FROM messages
-        WHERE original LIKE ?
-        """,
-        (f"%{before.id},%",),
-    )
-    row = cursor.fetchone()
-    connect.close()
+    try:
+        with deps.main_db as connect:
+            connect.row_factory = Row
+            cursor = connect.cursor()
+            cursor.execute(
+                """
+                SELECT anothers
+                FROM messages
+                WHERE original LIKE ?
+                """,
+                (f"%{before.id},%",),
+            )
+            row = cursor.fetchone()
+            connect.close()
+    except Exception as e:
+        logging.error(f'Ошибка в on_edited: {e}')
+        return
 
     if not row:
         return

@@ -1,4 +1,4 @@
-from ..library import hybrid_command, Context, con, deps, Row, Webhook
+from ..library import hybrid_command, Context, con, deps, Webhook, logging
 
 class DeleteCommand:
     @hybrid_command(name='delete-message', aliases=['delete_message', 'delmes', 'del-mes', 'del_mes', 'delete', 'message-delete', 'message_delete', 'удалить'])
@@ -20,19 +20,21 @@ class DeleteCommand:
             ):
             await ctx.reply('У вас нет права вызывать эту команду по отношению к кому-то кроме себя!')
             return
-        
-        connect = con(deps.DATABASE_MAIN_PATH)
-        connect.row_factory = Row
-        cursor = connect.cursor()
+        try:
+            with deps.main_db as connect:
+                cursor = connect.cursor()
 
-        cursor.execute(f"""
-                       SELECT *
-                       FROM messages
-                       WHERE anothers LIKE '%{replied_message.id},%'
-                       OR original LIKE '%{replied_message.id},%'
-                       """)
-        fetches = cursor.fetchall()
-        connect.close()
+                cursor.execute(f"""
+                            SELECT *
+                            FROM messages
+                            WHERE anothers LIKE '%{replied_message.id},%'
+                            OR original LIKE '%{replied_message.id},%'
+                            """)
+                fetches = cursor.fetchall()
+                cursor.close()
+        except Exception as e:
+            logging.error(f'Ошибка в delete_message: {e}')
+            return
         
         for fetch in fetches:
             anothers = fetch['anothers'].split(';')
@@ -56,13 +58,24 @@ class DeleteCommand:
             await ctx.reply('У вас нет права вызывать эту команду!')
             return
         
-        connect = con(deps.DATABASE_MAIN_PATH)
-        cursor = connect.cursor()
+        try:
+            with deps.main_db as connect:
+                cursor = connect.cursor()
 
-        cursor.execute("""
-                       DELETE FROM messages
-                       """)
-        connect.commit()
-        connect.close()
+                cursor.execute("""
+                            DELETE FROM messages
+                            """)
+                connect.commit()
 
-        await ctx.send('Вся история сообщений удалена!')
+                cursor.execute("""
+                               SELECT COUNT(*) 
+                               FROM messages
+                               """)
+                fetch = cursor.fetchone()[0]
+
+                cursor.close()
+
+                await ctx.send(f'Вся история сообщений удалена! Общее количество удаленых сообщений из базы данных равна {fetch}')
+        except Exception as e:
+            logging.error(f'Ошибка в delete_history: {e}')
+            return

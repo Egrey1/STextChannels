@@ -2,6 +2,7 @@ from discord.ext.commands import Bot
 from discord import Guild, Role, Intents
 from aiohttp import ClientSession
 from typing import Tuple, List
+from sqlite3 import Connection
 
 bot: Bot
 intents: Intents
@@ -11,6 +12,8 @@ PREFIX: Tuple[str]
 TOKEN: str
 
 DATABASE_MAIN_PATH: str
+main_db: Connection
+
 global_http: ClientSession
 second_http: ClientSession
 

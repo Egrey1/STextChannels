@@ -8,3 +8,5 @@ from sqlite3 import Row
 from typing import List, Dict
 
 from datetime import datetime
+
+import logging
