@@ -9,6 +9,7 @@ class Listener(Cog):
             (message.author.bot) or 
             (message.content.startswith(deps.PREFIX)) or 
             ('https://discord.gg/' in message.content) or 
+            ('discord.gg/' in message.content) or
             (message.author.muted())
             ):
             return

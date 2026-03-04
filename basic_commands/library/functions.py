@@ -115,6 +115,9 @@ async def on_sended_replaied(message: Message):
     # fetches = cursor.fetchall()
     # connect.close()
 
+    if not hasattr(webhook_m_s.anothers):
+        return
+
     if not (webhook_m_s.anothers and webhook_m_s.original):
         return
     
@@ -189,7 +192,7 @@ async def on_edited(before: Message, after: Message):
                 (f"%{before.id},%",),
             )
             row = cursor.fetchone()
-            connect.close()
+            cursor.close()
     except Exception as e:
         logging.error(f'Ошибка в on_edited: {e}')
         return

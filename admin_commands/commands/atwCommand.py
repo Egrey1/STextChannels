@@ -1,5 +1,6 @@
 from ..library import hybrid_command, Context, deps, describe, transguild_admin, Interaction, View, Button, con, Embed, logging
 from ..modals import AtwModal
+from discord.abc import GuildChannel
 
 class AddCommand:
     @hybrid_command(
@@ -10,13 +11,16 @@ class AddCommand:
     @describe(option="Опция команды", name='Название межсерверной сети')
     async def add_to_web(self, ctx: Context, option: str | None = None, name: str | None = None):
         """Опциональный параметр `option` принимает значения add/create/remove/delete.
-        Если `option` не указан, выводится документация. Название сети требуется для create/delete/add/remove.
+        Если `option` не указан, выводится документация. Название сети требуется для create/delete/add.
         """
 
+        print(ctx.permissions)
+        print(ctx.author.guild_permissions)
+        
         # базовая проверка прав
         if (
             (not await ctx.author.is_a_transguild()) and not
-            (ctx.author.guild_permissions.administrator and option == 'remove')
+            (ctx.permissions.administrator and option == 'remove')
             ):
             await ctx.send('У вас нет прав на использование этой команды')
             return
@@ -97,6 +101,7 @@ class AddCommand:
 
                     if not fetches:
                         await ctx.send('Этот канал не состоял ни в одном межсервере!', ephemeral=True)
+                        return
 
                     for fetch in fetches:
                         names.append(fetch['name'])
