@@ -9,15 +9,14 @@ class Listener(Cog):
             (message.author.bot) or 
             (message.content.startswith(deps.PREFIX)) or 
             ('https://discord.gg/' in message.content) or 
-            ('discord.gg/' in message.content) or
-            (message.author.muted())
+            ('discord.gg/' in message.content)
             ):
             return
         
         if message.reference:
             try:
                 await on_sended_replaied(message)
-            except ValueError:
+            except:
                 await on_sended(message)
             return
         

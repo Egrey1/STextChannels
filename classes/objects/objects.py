@@ -182,6 +182,7 @@ class WebhookMessageSended:
                     splited[0], splited[1], splited[2], splited[3], splited[4])
             except Exception as e:
                 logging.error(f'Ошибка в WebhookMessageSenden: {e}')
+                raise ValueError(f'Ошибка в WebhookMessageSenden: {e}')
 
 
 class WebhookMessagesSended:
@@ -227,6 +228,7 @@ class WebhookMessagesSended:
                     self.anothers: List[WebhookMessageSended] = new_anothers
             except Exception as e:
                 logging.error(f'Ошибка в WebhookMessagesSended: {e}')
+                raise ValueError(f'Ошибка в WebhookMessagesSended: {e}')
 
 
     def load(self):
@@ -257,3 +259,4 @@ class WebhookMessagesSended:
                 cursor.close()
         except Exception as e:
             logging.info(f'Ошибка в load: {e}')
+            raise ValueError(f'Ошибка в load: {e}')

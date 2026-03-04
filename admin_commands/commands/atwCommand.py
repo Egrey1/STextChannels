@@ -13,9 +13,6 @@ class AddCommand:
         """Опциональный параметр `option` принимает значения add/create/remove/delete.
         Если `option` не указан, выводится документация. Название сети требуется для create/delete/add.
         """
-
-        print(ctx.permissions)
-        print(ctx.author.guild_permissions)
         
         # базовая проверка прав
         if (

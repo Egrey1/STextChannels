@@ -12,37 +12,47 @@ class NewMember(Member):
         mem = await self.from_capital()
         return any(deps.m_transguild.id == role.id for role in mem.roles) if mem else False
     
-    def muted(self, value: datetime = None) -> bool | None:
-        if not value:
+    def muted(self, value: datetime = None) -> bool | datetime:
+        """Return False if not muted or expired, else expiration datetime."""
+        if value is None:
             try:
                 with deps.main_db as connect:
                     cursor = connect.cursor()
-
-                    cursor.execute("""
-                                SELECT muted_up
-                                FROM users
-                                WHERE user_id = ?
-                                """, (self.id,))
+                    cursor.execute(
+                        """
+                        SELECT muted_up
+                        FROM users
+                        WHERE user_id = ?
+                        """,
+                        (self.id,),
+                    )
                     fetch = cursor.fetchone()
                     cursor.close()
 
-                    return bool(fetch[0]) if fetch else None
+                if not fetch or not fetch[0]:
+                    return False
+                until = datetime.fromisoformat(fetch[0])
+                if datetime.now() >= until:
+                    self.unmute_web()
+                    return False
+                return until
             except Exception as e:
                 logging.error(f'Ошибка в muted: {e}')
-                return None
-            
-        
+                return False
+        # set new time
         try:
+            iso = value.isoformat() if isinstance(value, datetime) else str(value)
             with deps.main_db as connect:
                 cursor = connect.cursor()
-
-                cursor.execute("""
-                            INSERT INTO users (user_id, muted_up)
-                            VALUES (?, ?)
-                            ON CONFLICT(user_id) DO
-                            UPDATE SET
-                            muted_up = excluded.muted_up
-                            """, (value.isoformat(), self.id))
+                cursor.execute(
+                    """
+                    INSERT INTO users (user_id, muted_up)
+                    VALUES (?, ?)
+                    ON CONFLICT(user_id) DO
+                    UPDATE SET muted_up = excluded.muted_up
+                    """,
+                    (self.id, iso),
+                )
                 connect.commit()
                 cursor.close()
         except Exception as e:

@@ -33,7 +33,26 @@ def give_fetch(channel_id: int) -> List[dict] | None:
 
 
 async def on_sended(message: Message):
+    # если автор замьючен в этом канале, в сети (share) или везде — не форвардим
+    try:
+        mute_info = message.author.muted()
+    except Exception:
+        mute_info = False
+
     fetches = give_fetch(message.channel.id)
+
+    if mute_info:
+        where_list = message.author.where_muted() or []
+        # full mute
+        if 'all' in where_list:
+            return
+        # mute by channel id
+        if any(''.join(ch for ch in w if ch.isdigit()) == str(message.channel.id) for w in where_list):
+            return
+        # mute by share name: if this channel belongs to a share listed in where_list
+        if fetches and any((dict(f).get('name') in where_list) for f in fetches):
+            return
+
     if not fetches:
         return
 
@@ -71,7 +90,7 @@ async def on_sended(message: Message):
             try:
                 files = [await attachment.to_file() for attachment in message.attachments] if message.attachments else []
 
-                sent = await webhook.send(
+                sent: Message = await webhook.send(
                     content=message.content,
                     username=message.author.global_name,
                     avatar_url=message.author.display_avatar.url,
@@ -98,6 +117,23 @@ async def on_sended(message: Message):
             tmp.load()
 
 async def on_sended_replaied(message: Message):
+    # mute check: if author's muted in this channel/all/share, drop it
+    try:
+        mute_info = message.author.muted()
+    except Exception:
+        mute_info = False
+
+    fetches = give_fetch(message.channel.id)
+
+    if mute_info:
+        where_list = message.author.where_muted() or []
+        if 'all' in where_list:
+            return
+        if any(''.join(ch for ch in w if ch.isdigit()) == str(message.channel.id) for w in where_list):
+            return
+        if fetches and any((dict(f).get('name') in where_list) for f in fetches):
+            return
+
     replied = message.reference
 
     webhook_m_s = deps.WebhookMessagesSended(message_id=replied.message_id)
@@ -115,7 +151,7 @@ async def on_sended_replaied(message: Message):
     # fetches = cursor.fetchall()
     # connect.close()
 
-    if not hasattr(webhook_m_s.anothers):
+    if not hasattr(webhook_m_s, 'anothers'):
         return
 
     if not (webhook_m_s.anothers and webhook_m_s.original):
@@ -135,7 +171,7 @@ async def on_sended_replaied(message: Message):
                 webmes.webhook_url, 
                 message.jump_url, 
                 message.author.id,
-                message.channel.id
+                webmes.channel_id
             )
             continue
 
@@ -160,7 +196,7 @@ async def on_sended_replaied(message: Message):
                 webmes.webhook_url, 
                 message.jump_url, 
                 message.author.id,
-                message.channel.id
+                webmes.channel_id
             )
             await sent.delete()
         else:
@@ -169,7 +205,7 @@ async def on_sended_replaied(message: Message):
                 webhook.url, 
                 sent.jump_url, 
                 message.author.id, 
-                message.channel.id))
+                sent.channel.id))
 
         
 
