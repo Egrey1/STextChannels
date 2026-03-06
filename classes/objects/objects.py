@@ -1,7 +1,29 @@
 from ..library import con, deps, Row, List, Dict, logging
+from discord import Embed, ui, ButtonStyle, SelectOption, Interaction
+from discord.ext.commands import Context
 
 class Web:
+    """
+    Класс для управления сетью (share) каналов с вебхуками.
+
+    Атрибуты:
+        name (str): Название сети.
+        description (str): Описание сети.
+        channels (str): Строка с каналами и вебхуками в формате 'id,url;id,url...'.
+        groups (List[Dict[int, str]]): Список словарей с channel_id и webhook_url.
+    """
     def __init__(self, name: str | None = None):
+        """
+        Инициализирует объект Web по названию сети.
+
+        Загружает данные из таблицы shares базы данных.
+
+        Параметры:
+            name (str | None): Название сети. По умолчанию None.
+
+        Исключения:
+            Exception: При ошибках базы данных.
+        """
         try: 
             with deps.main_db as connect:
                 cursor = connect.cursor()
@@ -30,6 +52,12 @@ class Web:
 
 
     def set_name(self, new_name: str):
+        """
+        Устанавливает новое название сети и обновляет в базе данных.
+
+        Параметры:
+            new_name (str): Новое название сети.
+        """
         try:
             with deps.main_db as connect:
                 cursor = connect.cursor()
@@ -46,6 +74,12 @@ class Web:
             logging.error(f'Ошибка в set_name: {e}')
     
     def set_description(self, new_description: str):
+        """
+        Устанавливает новое описание сети и обновляет в базе данных.
+
+        Параметры:
+            new_description (str): Новое описание сети.
+        """
         try:
             with deps.main_db as connect:
                 cursor = connect.cursor()
@@ -62,6 +96,12 @@ class Web:
             logging.error(f'Ошибка в set_description: {e}')
 
     def set_channels(self, channels: str):
+        """
+        Устанавливает новые каналы и обновляет в базе данных.
+
+        Параметры:
+            channels (str): Строка с каналами в формате 'id,url;id,url...'.
+        """
         try:
             with deps.main_db as connect:
                 cursor = connect.cursor()
@@ -77,6 +117,13 @@ class Web:
             logging.error(f'Ошибка в set_channels: {e}')
     
     def add_channel(self, channel_id: int, webhook_url: str):
+        """
+        Добавляет новый канал с вебхуком в сеть.
+
+        Параметры:
+            channel_id (int): ID канала.
+            webhook_url (str): URL вебхука.
+        """
         try:
             with deps.main_db as connect:
                 cursor = connect.cursor()
@@ -260,3 +307,433 @@ class WebhookMessagesSended:
         except Exception as e:
             logging.info(f'Ошибка в load: {e}')
             raise ValueError(f'Ошибка в load: {e}')
+        
+
+class ShopItem:
+    """
+    Класс для представления товара в магазине.
+
+    Атрибуты:
+        name (str): Название товара.
+        id (int): Уникальный ID товара.
+        description (str): Описание товара.
+        price (int): Цена товара.
+        guild_id (int): ID гильдии, к которой относится товар.
+    """
+    def __init__(
+            self, 
+            name: str | None = None, 
+            id_: int | None = None, 
+            description: str | None = None, 
+            price: int | None = None, 
+            guild_id: int | None = None,
+            create: bool = False):
+        """
+        Инициализирует объект ShopItem.
+
+        Если переданы name или id_, загружает данные из БД.
+        Если create=True, создаёт новый товар в БД.
+
+        Параметры:
+            name (str | None): Название товара. По умолчанию None.
+            id_ (int | None): ID товара. По умолчанию None.
+            description (str | None): Описание товара. По умолчанию None.
+            price (int | None): Цена товара. По умолчанию None.
+            guild_id (int | None): ID гильдии. По умолчанию None.
+            create (bool): Флаг создания нового товара. По умолчанию False.
+
+        Исключения:
+            Exception: При ошибках базы данных.
+        """
+        try:
+            with deps.economic_db as connect:
+                cursor = connect.cursor()
+
+                if name is not None and id_ is None:
+                    cursor.execute("""
+                                   SELECT * 
+                                   FROM shop
+                                   WHERE item_name = ?
+                                   """, (name, ))
+                elif id_ is not  None and name is None:
+                    cursor.execute("""
+                                   SELECT *
+                                   FROM shop
+                                   WHERE item_id = ?
+                                   """, (id_, ))
+                else:
+                    self.name = name
+                    self.id = id_
+                    self.description = description
+                    self.price = price
+                    self.guild_id = guild_id
+                    if not create:
+                        cursor.close()
+                        return
+                    
+                    cursor.execute("""
+                                   INSERT INTO shop (item_name, item_id, description, price, guild_id)
+                                   VALUES (?, ?, ?, ?, ?)
+                                   ON CONFLICT(item_id) DO
+                                   UPDATE SET 
+                                   item_name = excluded.item_name, 
+                                   description = excluded.description, 
+                                   price = excluded.price, 
+                                   guild_id = excluded.guild_id
+                                   """, (self.name, self.id, self.description, self.price, self.guild_id))
+                    connect.commit()
+                    cursor.close()
+                    return
+                
+                fetch = cursor.fetchone()
+                cursor.close()
+
+                if not fetch:
+                    self.name = None
+                    self.id = None
+                    self.description = None
+                    self.price = None
+                    self.guild_id = None
+                    logging.error(f'Запись в БД не найдена! {id_ if id_ else name}')
+                    return
+
+                self.name = fetch['item_name']
+                self.id = fetch['item_id']
+                self.description = fetch['description']
+                self.price = fetch['price']
+                self.guild_id = fetch['guild_id']
+        except Exception as e:
+            logging.error(f'Ошибка в ShopItem: {e}')
+
+class GuildShopItems:
+    """
+    Класс для списка товаров гильдии.
+
+    Атрибуты:
+        items (List[ShopItem]): Список товаров гильдии.
+    """
+    def __init__(self, guild_id: int):
+        """
+        Инициализирует объект GuildShopItems.
+
+        Загружает все товары для указанной гильдии из БД.
+
+        Параметры:
+            guild_id (int): ID гильдии.
+
+        Исключения:
+            Exception: При ошибках базы данных.
+        """
+        try:
+            with deps.economic_db as connect:
+                cursor = connect.cursor()
+
+                cursor.execute("""
+                                SELECT *
+                                FROM shop
+                                WHERE guild_id = ?
+                               """, (guild_id, ))
+                
+                fetches = cursor.fetchall()
+                cursor.close()
+
+                self.items: List[ShopItem] = []
+                for fetch in fetches:
+                    self.items.append(
+                                ShopItem(
+                                        fetch['item_name'], 
+                                        fetch['item_id'], 
+                                        fetch['description'], 
+                                        fetch['price'], 
+                                        fetch['guild_id']))
+        except Exception as e:
+            logging.error(f'Ошибка в GuildShopItems: {e}')
+
+class ShopView(ui.View):
+    """
+    View для интерфейса магазина с кнопками и селектом.
+
+    Атрибуты:
+        shop (Shop): Экземпляр Shop для доступа к данным.
+    """
+    def __init__(self, shop: 'Shop'):
+        """
+        Инициализирует ShopView.
+
+        Создаёт селект и кнопки навигации, если нужно.
+
+        Параметры:
+            shop (Shop): Экземпляр Shop.
+        """
+        super().__init__(timeout=300)
+        self.shop = shop
+        select = self.shop.create_select()
+        select.callback = self.select_callback
+
+        self.add_item(select)
+        if len(self.shop.items) > self.shop.per_page:
+            prev_button = ui.Button(label="⏮️", style=ButtonStyle.primary, disabled=True)
+            next_button = ui.Button(label="⏭️", style=ButtonStyle.primary)
+            prev_button.callback = self.prev_callback
+            next_button.callback = self.next_callback
+            self.add_item(prev_button)
+            self.add_item(next_button)
+
+    async def prev_callback(self, interaction: Interaction):
+        """
+        Обработчик кнопки Previous.
+
+        Переходит на предыдущую страницу.
+        """
+        if self.shop.page > 0:
+            self.shop.page -= 1
+            embed = self.shop.create_embed()
+            select = self.shop.create_select()
+            select.callback = self.select_callback
+            self.clear_items()
+            self.add_item(select)
+            if len(self.shop.items) > self.shop.per_page:
+                prev_button = ui.Button(label="⏮️", style=ButtonStyle.primary, disabled=self.shop.page == 0)
+                next_button = ui.Button(label="⏭️", style=ButtonStyle.primary, disabled=self.shop.page >= len(self.shop.items) // self.shop.per_page)
+                prev_button.callback = self.prev_callback
+                next_button.callback = self.next_callback
+                self.add_item(prev_button)
+                self.add_item(next_button)
+            await interaction.response.edit_message(embed=embed, view=self)
+
+    async def next_callback(self, interaction: Interaction):
+        """
+        Обработчик кнопки Next.
+
+        Переходит на следующую страницу.
+        """
+        if (self.shop.page + 1) * self.shop.per_page < len(self.shop.items):
+            self.shop.page += 1
+            embed = self.shop.create_embed()
+            select = self.shop.create_select()
+            select.callback = self.select_callback
+            self.clear_items()
+            self.add_item(select)
+            if len(self.shop.items) > self.shop.per_page:
+                prev_button = ui.Button(label="⏮️", style=ButtonStyle.primary, disabled=self.shop.page == 0)
+                next_button = ui.Button(label="⏭️", style=ButtonStyle.primary, disabled=self.shop.page >= len(self.shop.items) // self.shop.per_page)
+                prev_button.callback = self.prev_callback
+                next_button.callback = self.next_callback
+                self.add_item(prev_button)
+                self.add_item(next_button)
+            await interaction.response.edit_message(embed=embed, view=self)
+
+    async def select_callback(self, interaction: Interaction):
+        """
+        Обработчик выбора товара в селекте.
+
+        Отправляет embed с информацией о товаре и админах.
+        """
+        selected_value = interaction.data['values'][0]
+        item = ShopItem(id_=int(selected_value))
+
+        embed = Embed(
+            title=item.name + ' - ' + str(item.price) + ' ' + (
+                'кредитов' if item.price > 4 else 'кредит' if item.price == 1 else 'кредита'
+                ), description=item.description)
+        
+        embed.set_footer(text=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+
+        async def bt_callback(interaction: Interaction):
+            if not (await interaction.user.is_a_shop()):
+                await interaction.response.send_message('Вы не имеете право использовать эту кнопку!', ephemeral=True)
+                return
+            user = interaction.user
+            if user.get_money() < item.price:
+                await interaction.response.send_message(f'У {user.mention} недостаточно кредитов для покупки предмета!')
+                return
+            
+            await user.add_money(-item.price)
+            await interaction.guild.add_money(item.price * 0.9)
+
+            await interaction.response.send_message(f'Оплата была произведена успешно! Баланс сервера увеличился на {(item.price * 0.9):.2f} и теперь равен {(interaction.guild.get_money()):.2f}')
+
+        view = ui.View()
+        button = ui.Button(label='Разрешить покупку', emoji='✅')
+
+        button.callback = bt_callback
+        view.add_item(button)
+
+        await interaction.response.send_message(f"Ожидайте прибытия АММ", embed=embed, view=view)
+
+
+class Shop:
+    """
+    Класс для управления магазином гильдии.
+
+    Атрибуты:
+        ctx (Context): Контекст команды.
+        guild_shop (GuildShopItems): Товары гильдии.
+        items (List[ShopItem]): Список товаров.
+        page (int): Текущая страница.
+        per_page (int): Товаров на страницу.
+        message (Message): Сообщение с магазином.
+    """
+    def __init__(self, ctx: Context, guild_id: int | None = None):
+        """
+        Инициализирует объект Shop.
+
+        Параметры:
+            ctx (Context): Контекст команды.
+        """
+        self.ctx = ctx
+        self.guild_shop = GuildShopItems(ctx.guild.id if guild_id is None else guild_id)
+        self.items = self.guild_shop.items
+        self.page = 0
+        self.per_page = 10
+        self.message = None
+
+    def create_embed(self):
+        """
+        Создаёт embed для текущей страницы товаров.
+
+        Возвращает:
+            Embed: Embed с товарами.
+        """
+        embed = Embed(title="Shop", color=0x00ff00)
+        start = self.page * self.per_page
+        end = start + self.per_page
+        page_items = self.items[start:end]
+        for item in page_items:
+            embed.add_field(
+                name=f"{item.name} - {item.price}",
+                value=item.description,
+                inline=False
+            )
+        embed.set_footer(text=f"Page {self.page + 1} of {(len(self.items) - 1) // self.per_page + 1}")
+        return embed
+
+    def create_select(self):
+        """
+        Создаёт селект для текущей страницы товаров.
+
+        Возвращает:
+            Select: Селект с опциями товаров.
+        """
+        start = self.page * self.per_page
+        end = start + self.per_page
+        page_items = self.items[start:end]
+        options = [
+            SelectOption(
+                label=item.name,
+                value=str(item.id),
+                description=item.description[:100] if item.description else ""
+            ) for item in page_items
+        ]
+        select = ui.Select(placeholder="Выберите предмет для покупку", options=options)
+        return select
+
+    async def send(self):
+        """
+        Отправляет сообщение с магазином в канал.
+        """
+        embed = self.create_embed()
+        view = ShopView(self)
+        if not embed:
+            await self.ctx.send('Товары отсутствуют!')
+            return
+        self.message = await self.ctx.send(embed=embed, view=view)
+
+
+class ItemsView(ui.View):
+    """
+    View для интерфейса выбора товаров с пагинацией.
+
+    Атрибуты:
+        options (List[SelectOption]): Список опций для селекта.
+        page (int): Текущая страница.
+        per_page (int): Товаров на страницу (максимум 12).
+        select_callback (callable): Функция обратного вызова при выборе товара.
+    """
+    def __init__(self, options: List[SelectOption]):
+        """
+        Инициализирует ItemsView с пагинацией.
+
+        Создаёт селект и кнопки навигации для выбора товаров.
+
+        Параметры:
+            options (List[SelectOption]): Список SelectOption для отображения.
+        """
+        super().__init__(timeout=300)
+        self.options = options
+        self.page = 0
+        self.per_page = 12
+        self.select_callback = None  # Будет установлена снаружи
+        
+        self._update_view()
+
+    def _create_select(self):
+        """
+        Создаёт селект для текущей страницы опций.
+
+        Возвращает:
+            Select: Селект с опциями текущей страницы.
+        """
+        start = self.page * self.per_page
+        end = start + self.per_page
+        page_options = self.options[start:end]
+        
+        select = ui.Select(
+            placeholder="Предметы",
+            options=page_options,
+            min_values=1,
+            max_values=1
+        )
+        select.callback = self._select_handler
+        return select
+
+    async def _select_handler(self, interaction: Interaction):
+        """
+        Внутренний обработчик выбора селекта.
+
+        Вызывает установленный select_callback если он существует.
+        """
+        if self.select_callback:
+            await self.select_callback(interaction)
+
+    def _update_view(self):
+        """
+        Обновляет компоненты view (селект и кнопки навигации).
+        """
+        self.clear_items()
+        
+        select = self._create_select()
+        self.add_item(select)
+        
+        # Добавляем кнопки навигации, если нужна пагинация
+        if len(self.options) > self.per_page:
+            prev_button = ui.Button(label="⏮️", style=ButtonStyle.primary, disabled=self.page == 0)
+            next_button = ui.Button(label="⏭️", style=ButtonStyle.primary, disabled=self.page >= (len(self.options) - 1) // self.per_page)
+            
+            prev_button.callback = self.prev_callback
+            next_button.callback = self.next_callback
+            
+            self.add_item(prev_button)
+            self.add_item(next_button)
+
+    async def prev_callback(self, interaction: Interaction):
+        """
+        Обработчик кнопки Previous.
+
+        Переходит на предыдущую страницу и обновляет селект.
+        """
+        if self.page > 0:
+            self.page -= 1
+            self._update_view()
+            await interaction.response.edit_message(view=self)
+
+    async def next_callback(self, interaction: Interaction):
+        """
+        Обработчик кнопки Next.
+
+        Переходит на следующую страницу и обновляет селект.
+        """
+        if (self.page + 1) * self.per_page < len(self.options):
+            self.page += 1
+            self._update_view()
+            await interaction.response.edit_message(view=self)

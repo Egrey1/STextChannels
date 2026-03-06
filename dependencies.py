@@ -1,5 +1,6 @@
-from discord.ext.commands import Bot
-from discord import Guild, Role, Intents
+from discord.ext.commands import Bot, Context
+from discord import Guild, Role, Intents, Message, TextChannel, SelectOption
+from discord.ui import View
 from aiohttp import ClientSession
 from typing import Tuple, List
 from sqlite3 import Connection
@@ -12,13 +13,18 @@ PREFIX: Tuple[str]
 TOKEN: str
 
 DATABASE_MAIN_PATH: str
+DATABASE_ECONOMIC_PATH: str
 main_db: Connection
+economic_db: Connection
 
 global_http: ClientSession
 second_http: ClientSession
 
 a_transguild: Role
 m_transguild: Role
+a_shop: Role
+
+economicLogs: TextChannel
 
 class Web:
     ...
@@ -119,3 +125,151 @@ class WebhookMessagesSended:
         Исключения:
             sqlite3.Error: При ошибках работы с базой данных.
         """
+
+class ShopItem:
+    """
+    Класс для представления товара в магазине.
+
+    Атрибуты:
+        name (str): Название товара.
+        id (int): Уникальный ID товара.
+        description (str): Описание товара.
+        price (int): Цена товара.
+        guild_id (int): ID гильдии, к которой относится товар.
+    """
+    def __init__(
+            self, 
+            name: str | None = None, 
+            id_: int | None = None, 
+            description: str | None = None, 
+            price: int | None = None, 
+            guild_id: int | None = None,
+            create: bool = False):
+        """
+        Инициализирует объект ShopItem.
+
+        Если переданы name или id_, загружает данные из БД.
+        Если create=True, создаёт новый товар в БД.
+
+        Параметры:
+            name (str | None): Название товара. По умолчанию None.
+            id_ (int | None): ID товара. По умолчанию None.
+            description (str | None): Описание товара. По умолчанию None.
+            price (int | None): Цена товара. По умолчанию None.
+            guild_id (int | None): ID гильдии. По умолчанию None.
+            create (bool): Флаг создания нового товара или обновления текущего. По умолчанию False.
+
+        Исключения:
+            Exception: При ошибках базы данных.
+        """
+        self.name: str
+        """Название товара"""
+        self.id: int
+        """Уникальный ID товара"""
+        self.description: str
+        """Описание товара"""
+        self.price: int
+        """Цена товара"""
+        self.guild_id: int
+        """ID гильдии, к которой относится товар"""
+
+class GuildShopItems:
+    """
+    Класс для списка товаров гильдии.
+
+    Атрибуты:
+        items (List[ShopItem]): Список товаров гильдии.
+    """
+    def __init__(self, guild_id: int):
+        """
+        Инициализирует объект GuildShopItems.
+
+        Загружает все товары для указанной гильдии из БД.
+
+        Параметры:
+            guild_id (int): ID гильдии.
+
+        Исключения:
+            Exception: При ошибках базы данных.
+        """
+        self.items: List[ShopItem]
+        """Список товаров гильдии"""
+
+
+class Shop:
+    """
+    Класс для управления магазином гильдии.
+
+    Атрибуты:
+        ctx (Context): Контекст команды.
+        guild_shop (GuildShopItems): Товары гильдии.
+        items (List[ShopItem]): Список товаров.
+        page (int): Текущая страница.
+        per_page (int): Товаров на страницу.
+        message (Message): Сообщение с магазином.
+    """
+    def __init__(self, ctx: Context):
+        """
+        Инициализирует объект Shop.
+
+        Параметры:
+            ctx (Context): Контекст команды.
+        """
+        self.guild_shop: GuildShopItems
+        """Товары гильдии"""
+        self.items: List[ShopItem]
+        """Список товаров"""
+        self.page: int
+        """Текущая страница"""
+        self.per_page: int
+        """Товаров на страницу"""
+        self.message: Message
+        """Сообщение с магазином"""
+
+
+class ItemsView(View):
+    """
+    View для интерфейса выбора товаров с пагинацией.
+
+    Используется в командах редактирования и удаления товаров для выбора товара из списка.
+    Поддерживает пагинацию с лимитом 12 опций на странице.
+
+    Атрибуты:
+        options (List[SelectOption]): Список опций для селекта.
+        page (int): Текущая страница.
+        per_page (int): Товаров на страницу (максимум 12).
+        select_callback (callable): Асинхронная функция обратного вызова при выборе товара.
+                                   Принимает Interaction в качестве параметра.
+    """
+    def __init__(self, options: List[SelectOption]):
+        """
+        Инициализирует ItemsView с пагинацией.
+
+        Создаёт селект с плейсхолдером "Предметы" и кнопки навигации (⏮️ ⏭️),
+        если товаров больше чем per_page.
+
+        Параметры:
+            options (List[SelectOption]): Список SelectOption для отображения.
+                                         Каждый SelectOption содержит label (название товара)
+                                         и value (ID товара).
+
+        Пример использования:
+            items = deps.GuildShopItems(ctx.guild.id).items
+            options = [SelectOption(label=item.name, value=str(item.id)) for item in items]
+            
+            async def callback(interaction: Interaction):
+                selected_id = interaction.data['values'][0]
+                # Логика обработки выбранного товара
+            
+            view = ItemsView(options)
+            view.select_callback = callback
+            await ctx.send('Выберите предмет', view=view)
+        """
+        self.options: List[SelectOption]
+        """Список опций для селекта"""
+        self.page: int
+        """Текущая страница"""
+        self.per_page: int
+        """Товаров на страницу (12)"""
+        self.select_callback: callable
+        """Функция обратного вызова при выборе. Должна быть асинхронной и принимать Interaction"""

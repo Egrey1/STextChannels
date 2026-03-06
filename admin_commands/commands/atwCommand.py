@@ -1,4 +1,4 @@
-from ..library import hybrid_command, Context, deps, describe, transguild_admin, Interaction, View, Button, con, Embed, logging
+from ..library import hybrid_command, Context, deps, describe, transguild_admin, Interaction, View, Button, con, Embed, logging, ButtonStyle
 from ..modals import AtwModal
 from discord.abc import GuildChannel
 
@@ -59,7 +59,7 @@ class AddCommand:
                     )
 
             view = View()
-            button = Button(label='Нажми на меня')
+            button = Button(label='👆', style=ButtonStyle.green)
             button.callback = if_is_not_interaction
             view.add_item(button)
             await ctx.send('Нажми на кнопку чтобы открыть модальное окно', view=view)
@@ -118,7 +118,6 @@ class AddCommand:
                     await ctx.send('Ваш канал успешно удален из всех межсерверов! Вот их список: ' + ', '.join(names), ephemeral=True)
             except Exception as e:
                 logging.error(f'Ошибка в remove_to_web: {e}')
-            # TODO: реализовать удаление канала из сети
 
         elif option == 'delete':
             if not name:

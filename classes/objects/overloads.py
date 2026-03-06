@@ -1,4 +1,4 @@
-from ..library import Member, User, deps, TextChannel, con, List, datetime, logging
+from ..library import Member, User, deps, TextChannel, con, List, datetime, logging, Guild, run, Embed
 
 class NewMember(Member):
     async def from_capital(self) -> Member:
@@ -128,6 +128,73 @@ class NewMember(Member):
         except Exception as e:
             logging.info(f'Ошибка в unmute_web: {e}')
 
+    def get_money(self):
+        try:
+            with deps.economic_db as connect:
+                cursor = connect.cursor()
+                a = self.id
+
+                cursor.execute("""
+                               SELECT money
+                               FROM user_balances
+                               WHERE user_id = ?
+                               """, (self.id, ))
+                fetch = cursor.fetchone()
+                cursor.close()
+
+                return int(fetch['money']) if fetch is not None else 0
+        except Exception as e:
+            logging.error(f'Ошибка в get_money: {e}')
+
+    async def set_money(self, value: int, member: Member | None = None):
+        try:
+            with deps.economic_db as connect:
+                cursor = connect.cursor()
+
+                cursor.execute("""
+                               INSERT INTO user_balances (user_id, money)
+                               VALUES (?, ?)
+                               ON CONFLICT(user_id) DO
+                               UPDATE SET money = excluded.money
+                               """, (self.id, value))
+                connect.commit()
+                cursor.close()
+
+                embed = Embed(title='Константное изменение баланса', description=f'У кого: {self.name}\nНовое значение: {value}')
+                if member:
+                    embed.set_footer(text=f'Вызвал: {member.name}', icon_url=member.avatar.url)
+
+                await deps.economicLogs.send(embed=embed)
+        except Exception as e:
+            logging.error(f'Ошибка в set_money: {e}')
+    
+    async def add_money(self, value: int, member: Member | None = None):
+        try:
+            value = int(self.get_money()) + value
+            with deps.economic_db as connect:
+                cursor = connect.cursor()
+
+                cursor.execute("""
+                               INSERT INTO user_balances (user_id, money)
+                               VALUES (?, ?)
+                               ON CONFLICT(user_id) DO
+                               UPDATE SET money = excluded.money
+                               """, (self.id, value))
+                connect.commit()
+                cursor.close()
+
+                embed = Embed(title='Изменение баланса', description=f'У кого: {self.name}\На сколько: {value}\nНовый баланс: {self.get_money()}')
+                if member:
+                    embed.set_footer(text=f'Вызвал: {member.name}', icon_url=member.avatar.url)
+
+                await deps.economicLogs.send(embed=embed)
+        except Exception as e:
+            logging.error(f'Ошибка в add_money: {e}')
+
+    async def is_a_shop(self):
+        mem = await self.from_capital()
+        return any(deps.a_shop.id == role.id for role in mem.roles) if mem else False
+    
 class NewUser(User):
     async def from_capital(self) -> Member:
         return await deps.capital.fetch_member(self.id)
@@ -246,6 +313,81 @@ class NewUser(User):
         except Exception as e:
             logging.info(f'Ошибка в unmute_web: {e}')
 
+    def get_money(self):
+        try:
+            with deps.economic_db as connect:
+                cursor = connect.cursor()
+
+                cursor.execute("""
+                               SELECT money
+                               FROM user_balances
+                               WHERE user_id = ?
+                               """, (self.id, ))
+                fetch = cursor.fetchone()
+                cursor.close()
+
+                return fetch['money'] if fetch is not None else 0
+        except Exception as e:
+            logging.error(f'Ошибка в get_money: {e}')
+
+    async def set_money(self, value: int, member: Member | None = None):
+        try:
+            with deps.economic_db as connect:
+                cursor = connect.cursor()
+
+                cursor.execute("""
+                               INSERT INTO user_balances (user_id, money)
+                               VALUES (?, ?)
+                               ON CONFLICT(user_id) DO
+                               UPDATE SET money = excluded.money
+                               """, (self.id, value))
+                connect.commit()
+                cursor.close()
+
+                embed = Embed(
+                    title='Константное изменение баланса', 
+                    description=f'У кого: {self.name}\nНовое значение: {value}'
+                    )
+                
+                if member:
+                    embed.set_footer(text=f'Вызвал: {member.name}', icon_url=member.avatar.url)
+
+                await deps.economicLogs.send(embed=embed)
+        except Exception as e:
+            logging.error(f'Ошибка в set_money: {e}')
+    
+    async def add_money(self, value: int, member: Member | None = None):
+        try:
+            value = int(self.get_money()) + value
+            with deps.economic_db as connect:
+                cursor = connect.cursor()
+
+                cursor.execute("""
+                               INSERT INTO user_balances (user_id, money)
+                               VALUES (?, ?)
+                               ON CONFLICT(user_id) DO
+                               UPDATE SET money = excluded.money
+                               """, (self.id, value))
+                connect.commit()
+                cursor.close()
+
+                embed = Embed(
+                    title='Изменение баланса', 
+                    description=f'У кого: {self.name}\На сколько: {value}\nНовый баланс: {self.get_money()}'
+                    )
+                
+                if member:
+                    embed.set_footer(text=f'Вызвал: {member.name}', icon_url=member.avatar.url)
+
+                await deps.economicLogs.send(embed=embed)
+        except Exception as e:
+            logging.error(f'Ошибка в add_money: {e}')
+
+    async def is_a_shop(self):
+        mem = await self.from_capital()
+        return any(deps.a_shop.id == role.id for role in mem.roles) if mem else False
+        
+
 class New_TextChannel(TextChannel):
     def get_all_webs(self) -> List[deps.Web]:
         try:
@@ -265,4 +407,76 @@ class New_TextChannel(TextChannel):
             logging.error(f'Ошибка в get_all_webs: {e}')
             return []
 
+
+class NewGuild(Guild):
+    def get_money(self):
+        try:
+            with deps.economic_db as connect:
+                cursor = connect.cursor()
+
+                cursor.execute("""
+                               SELECT money
+                               FROM guild_balances
+                               WHERE guild_id = ?
+                               """, (self.id, ))
+                
+                fetch = cursor.fetchone()
+                cursor.close()
+
+                return int(fetch['money']) if fetch is not None else 0
+        except Exception as e:
+            logging.error(f'Ошибка в get_money: {e}')
+
+    async def set_money(self, value: int, member: Member | None = None):
+        try:
+            with deps.economic_db as connect:
+                cursor = connect.cursor()
+
+                cursor.execute("""
+                               INSERT INTO guild_balances (guild_id, money)
+                               VALUES (?, ?)
+                               ON CONFLICT(guild_id) DO
+                               UPDATE SET money = excluded.money
+                               """, (self.id, value))
+                connect.commit()
+                cursor.close()
+
+                embed = Embed(
+                    title='Константное изменение баланса сервера', 
+                    description=f'У какого: {self.name}\nНовое значение: {value}'
+                    )
+                
+                if member:
+                    embed.set_footer(text=f'Вызвал: {member.name}', icon_url=member.avatar.url)
+
+                await deps.economicLogs.send(embed=embed)
+        except Exception as e:
+            logging.error(f'Ошибка в set_money: {e}')
     
+    async def add_money(self, value: int, member: Member | None = None):
+        try:
+            value = int(self.get_money()) + value
+            with deps.economic_db as connect:
+                cursor = connect.cursor()
+
+                cursor.execute("""
+                               INSERT INTO guild_balances (guild_id, money)
+                               VALUES (?, ?)
+                               ON CONFLICT(guild_id) DO
+                               UPDATE SET money = excluded.money
+                               """, (self.id, value))
+                connect.commit()
+                cursor.close()
+
+                embed = Embed(
+                    title='Изменение баланса сервера', 
+                    description=f'У какого: {self.name}\На сколько: {value}\nНовый баланс: {self.get_money()}'
+                    )
+                
+                if member:
+                    embed.set_footer(text=f'Вызвал: {member.name}', icon_url=member.avatar.url)
+
+                await deps.economicLogs.send(embed=embed)
+        except Exception as e:
+            logging.error(f'Ошибка в add_money: {e}')
+

@@ -63,15 +63,15 @@ class DeleteCommand:
                 cursor = connect.cursor()
 
                 cursor.execute("""
-                            DELETE FROM messages
-                            """)
-                connect.commit()
-
-                cursor.execute("""
                                SELECT COUNT(*) 
                                FROM messages
                                """)
                 fetch = cursor.fetchone()[0]
+
+                cursor.execute("""
+                            DELETE FROM messages
+                            """)
+                connect.commit()
 
                 cursor.close()
 
