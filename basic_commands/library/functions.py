@@ -89,26 +89,28 @@ async def on_sended(message: Message):
         for webhook in webhooks:
             try:
                 files = [await attachment.to_file() for attachment in message.attachments] if message.attachments else []
-
-                sent: Message = await webhook.send(
-                    content=message.content,
-                    username=message.author.global_name,
-                    avatar_url=message.author.display_avatar.url,
-                    wait=True,
-                    files=files[:10],
-                    allowed_mentions=AllowedMentions.none()
-                )
-                if sent.channel.id == message.channel.id:
-                    await sent.delete()
-                else:
-                    anothers.append(
-                        deps.WebhookMessageSended(
-                            sent.id, 
-                            webhook.url, 
-                            sent.jump_url, 
-                            message.author.id,
-                            sent.channel.id)
+                try:
+                    sent: Message = await webhook.send(
+                        content=message.content,
+                        username=message.author.global_name,
+                        avatar_url=message.author.display_avatar.url,
+                        wait=True,
+                        files=files[:10],
+                        allowed_mentions=AllowedMentions.none()
                     )
+                    if sent.channel.id == message.channel.id:
+                        await sent.delete()
+                    else:
+                        anothers.append(
+                            deps.WebhookMessageSended(
+                                sent.id, 
+                                webhook.url, 
+                                sent.jump_url, 
+                                message.author.id,
+                                sent.channel.id)
+                        )
+                except Exception as e:
+                    logging.exception(f'Что-то пошло не так: {e}')
             except Exception:
                 logging.exception('Failed to send message via webhook')
 
