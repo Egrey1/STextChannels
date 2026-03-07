@@ -72,6 +72,7 @@ def firstConfig():
 
 
     deps.PREFIX = ('stc ', 'stc.', 'stc. ', '$$', '$$ ', ';;', ';; ', '₽₽', '₽₽ ', '₴₴', '₴₴ ')
+    deps.automod_exceptions = ('https://cdn.discordapp.com/', 'https://tenor.com/', 'https://youtube.com/')
 
     deps.bot = deps.Bot(command_prefix=deps.PREFIX, intents=deps.intents, help_command=None)
     deps.TOKEN = getenv('TOKEN') # TOKEN HERE

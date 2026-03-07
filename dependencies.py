@@ -26,6 +26,8 @@ a_shop: Role
 
 economicLogs: TextChannel
 
+automod_exceptions: Tuple[str]
+
 class Web:
     ...
 
