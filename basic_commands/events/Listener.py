@@ -6,17 +6,20 @@ class Listener(Cog):
     @Cog.listener()
     async def on_message(self, message: Message):
         if (
-                (message.author.bot) or 
+                (message.webhook_id) or 
                 (message.content.startswith(deps.PREFIX)) or 
                 (
                     (
                         ('https://' in message.content) or 
-                        ('http://' in message.content)
+                        ('http://'  in message.content)
                     ) and not 
                     any(exception in message.content for exception in deps.automod_exceptions)
                 )
             ):
-            logging.info('Сообщение заблокировано')
+            if not message.author.bot:
+                logging.info(f'Сообщение заблокировано на сервере {message.guild.name[:25]}')
+            else:
+                logging.info("Сообщение заблокировано")
             return
         
         if message.reference:

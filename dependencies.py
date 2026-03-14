@@ -2,13 +2,14 @@ from discord.ext.commands import Bot, Context
 from discord import Guild, Role, Intents, Message, TextChannel, SelectOption
 from discord.ui import View
 from aiohttp import ClientSession
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 from sqlite3 import Connection
 
 bot: Bot
 intents: Intents
 capital: Guild
 PREFIX: Tuple[str]
+commission: float
 
 TOKEN: str
 
@@ -29,7 +30,73 @@ economicLogs: TextChannel
 automod_exceptions: Tuple[str]
 
 class Web:
-    ...
+    """
+    Класс для управления сетью (share) каналов с вебхуками.
+
+    Атрибуты:
+        name (str): Название сети.
+        description (str): Описание сети.
+        channels (str): Строка с каналами и вебхуками в формате 'id,url;id,url...'.
+        groups (List[Dict[int, str]]): Список словарей с channel_id и webhook_url.
+        bot (bool): Может ли сторонний бот отправлять сообщения в эту сеть.
+    """
+    def __init__(self, name: str | None = None):
+        """
+        Инициализирует объект Web по названию сети.
+
+        Загружает данные из таблицы shares базы данных.
+
+        Параметры:
+            name (str | None): Название сети. По умолчанию None.
+
+        Исключения:
+            Exception: При ошибках базы данных.
+        """
+        self.name: str
+        """Название сети."""
+        self.description: str
+        """Описание сети."""
+        self.channels: str
+        """Строка с каналами и вебхуками в формате 'id,url;id,url...'."""
+        self.groups: List[Dict[int, str]]
+        """Список словарей с channel_id и webhook_url."""
+        self.bot: bool
+        """Может ли сторонний бот отправлять сообщения в эту сеть."""
+
+    def set_name(self, new_name: str):
+        """
+        Устанавливает новое название сети и обновляет в базе данных.
+
+        Параметры:
+            new_name (str): Новое название сети.
+        """
+
+    def set_description(self, new_description: str):
+        """
+        Устанавливает новое описание сети и обновляет в базе данных.
+
+        Параметры:
+            new_description (str): Новое описание сети.
+        """
+
+    def set_channels(self, channels: str):
+        """
+        Устанавливает новые каналы и обновляет в базе данных.
+
+        Параметры:
+            channels (str): Строка с каналами в формате 'id,url;id,url...'.
+        """
+    
+    def add_channel(self, channel_id: int, webhook_url: str):
+        """
+        Добавляет новый канал с вебхуком в сеть.
+
+        Параметры:
+            channel_id (int): ID канала.
+            webhook_url (str): URL вебхука.
+        """
+
+    
 
 class WebhookMessageSended:
     """

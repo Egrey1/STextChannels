@@ -46,7 +46,7 @@ class ShopCommand:
                 async def callback(interaction: Interaction):
                     shop = deps.Shop(ctx, int(interaction.data['values'][0]))
                     await shop.send()
-                    await interaction.response.send_message('Отправлено!')
+                    await interaction.response.send_message('Отправлено!', ephemeral=True)
                 
                 select.callback = callback
                 view.add_item(select)

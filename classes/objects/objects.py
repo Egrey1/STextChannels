@@ -11,6 +11,7 @@ class Web:
         description (str): Описание сети.
         channels (str): Строка с каналами и вебхуками в формате 'id,url;id,url...'.
         groups (List[Dict[int, str]]): Список словарей с channel_id и webhook_url.
+        bot (bool): Может ли сторонний бот отправлять сообщения в эту сеть.
     """
     def __init__(self, name: str | None = None):
         """
@@ -40,6 +41,7 @@ class Web:
                 self.description = fetch['description']
                 self.channels = fetch['channels']
                 self.groups: List[Dict[int, str]]
+                self.bot = bool(fetch['bots'])
 
                 for group in fetch['channels']:
                     d = {
@@ -549,9 +551,9 @@ class ShopView(ui.View):
                 return
             
             await user.add_money(-item.price)
-            await interaction.guild.add_money(item.price * 0.9)
+            await interaction.guild.add_money(item.price * deps.commission)
 
-            await interaction.response.send_message(f'Оплата была произведена успешно! Баланс сервера увеличился на {(item.price * 0.9):.2f} и теперь равен {(interaction.guild.get_money()):.2f}')
+            await interaction.response.send_message(f'Оплата была произведена успешно! Баланс сервера увеличился на {(item.price * deps.commission):.2f} и теперь равен {(interaction.guild.get_money()):.2f}')
 
         view = ui.View()
         button = ui.Button(label='Разрешить покупку', emoji='✅')
@@ -634,7 +636,7 @@ class Shop:
         """
         embed = self.create_embed()
         view = ShopView(self)
-        if not embed:
+        if not self.guild_shop.items:
             await self.ctx.send('Товары отсутствуют!')
             return
         self.message = await self.ctx.send(embed=embed, view=view)
