@@ -57,6 +57,10 @@ async def on_sended(message: Message):
         return
 
     for fetch in fetches:
+        bot_available = bool(fetch['bots'])
+        if message.author.bot and not bot_available:
+            raise TypeError('Бот пытается отправить сообщение в сеть, где ему делать это нельзя')
+        
         original: deps.WebhookMessageSended
         urls = []
         
@@ -67,7 +71,9 @@ async def on_sended(message: Message):
                     u.split(',')[1], 
                     message.jump_url, 
                     message.author.id,
-                    message.channel.id)
+                    message.channel.id,
+                    fetch['name']
+                )
                 continue
             urls.append(u.split(',')[1])
         
@@ -107,7 +113,9 @@ async def on_sended(message: Message):
                                 webhook.url, 
                                 sent.jump_url, 
                                 message.author.id,
-                                sent.channel.id)
+                                sent.channel.id,
+                                fetch['name']
+                            )
                         )
                 except Exception as e:
                     logging.exception(f'Что-то пошло не так: {e}')
@@ -167,13 +175,16 @@ async def on_sended_replaied(message: Message):
     anothers: List[deps.WebhookMessageSended] = []
 
     for webmes in sendes:
+        if not webmes.web.bot and message.author.bot:
+            raise TypeError('Бот пытается отправить сообщение в сеть, где ему делать это нельзя')
         if webmes.channel_id == str(message.channel.id):
             original = deps.WebhookMessageSended(
                 message.id, 
                 webmes.webhook_url, 
                 message.jump_url, 
                 message.author.id,
-                webmes.channel_id
+                webmes.channel_id,
+                webmes.web.name
             )
             continue
 
@@ -198,7 +209,8 @@ async def on_sended_replaied(message: Message):
                 webmes.webhook_url, 
                 message.jump_url, 
                 message.author.id,
-                webmes.channel_id
+                webmes.channel_id,
+                webmes.web
             )
             await sent.delete()
         else:
@@ -207,7 +219,9 @@ async def on_sended_replaied(message: Message):
                 webhook.url, 
                 sent.jump_url, 
                 message.author.id, 
-                sent.channel.id))
+                sent.channel.id,
+                webmes.web
+            ))
 
         
 

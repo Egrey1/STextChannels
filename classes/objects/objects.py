@@ -158,7 +158,9 @@ class WebhookMessageSended:
             webhook_url: str | None = None, 
             message_url: str | None = None,
             author_id: int | str | None = None,
-            channel_id: int | str | None = None):
+            channel_id: int | str | None = None,
+            web: Web | str | None = None
+    ):
         """
         Инициализирует объект WebhookMessageSended.
 
@@ -180,13 +182,15 @@ class WebhookMessageSended:
         webhook_url is not None and
         message_url is not None and
         author_id is not None and
-        channel_id is not None
+        channel_id is not None and
+        web is not None
         ):
             self.message_id = str(message_id)
             self.webhook_url = webhook_url
             self.message_url = message_url
             self.author_id = str(author_id)
             self.channel_id = str(channel_id)
+            self.web = web if issistance(web, Web) else Web(web)
         else:
             try:
                 with deps.main_db as connect:
@@ -196,7 +200,8 @@ class WebhookMessageSended:
                             webhook_url if webhook_url else
                             message_url if message_url else
                             str(author_id) if author_id else 
-                            str(channel_id) if channel_id else None)
+                            str(channel_id) if channel_id else 
+                            web.name if web else None)
                     
                     if need is None:
                         raise ValueError('Неправильные параметры конструктора')
@@ -227,11 +232,11 @@ class WebhookMessageSended:
                         lneed = fetch.rfind(need, 0, ineed)
                         splited = fetch[fneed+1 : lneed].split(',')
 
-                    self.message_id, self.webhook_url, self.message_url, self.author_id, self.channel_id = (
-                    splited[0], splited[1], splited[2], splited[3], splited[4])
+                    self.message_id, self.webhook_url, self.message_url, self.author_id, self.channel_id, self.web = (
+                    splited[0], splited[1], splited[2], splited[3], splited[4], Web(splited[5]))
             except Exception as e:
-                logging.error(f'Ошибка в WebhookMessageSenden: {e}')
-                raise ValueError(f'Ошибка в WebhookMessageSenden: {e}')
+                logging.error(f'Ошибка в WebhookMessageSended: {e}')
+                raise ValueError(f'Ошибка в WebhookMessageSended: {e}')
 
 
 class WebhookMessagesSended:
@@ -264,7 +269,9 @@ class WebhookMessagesSended:
                                         original.split(',')[1], 
                                         original.split(',')[2], 
                                         original.split(',')[3],
-                                        original.split(',')[4])
+                                        original.split(',')[4],
+                                        original.split(',')[5]]
+                    )
                     new_anothers = []
                     for another in anothers.split(';'):
                         new_anothers.append(WebhookMessageSended(
@@ -272,7 +279,9 @@ class WebhookMessagesSended:
                                             another.split(',')[1], 
                                             another.split(',')[2], 
                                             another.split(',')[3],
-                                            another.split(',')[4]))
+                                            another.split(',')[4],
+                                            another.split(',')[5]]
+                        ))
                     self.original = original
                     self.anothers: List[WebhookMessageSended] = new_anothers
             except Exception as e:
@@ -285,7 +294,8 @@ class WebhookMessagesSended:
         original += self.original.webhook_url + ','
         original += self.original.message_url + ','
         original += self.original.author_id + ','
-        original += self.original.channel_id
+        original += self.original.channel_id + ','
+        original += self.original.web.name
 
         anothers = ''
         for another in range(len(self.anothers)):
@@ -293,7 +303,8 @@ class WebhookMessagesSended:
             anothers += self.anothers[another].webhook_url + ','
             anothers += self.anothers[another].message_url + ','
             anothers += self.anothers[another].author_id + ','
-            anothers += self.anothers[another].channel_id
+            anothers += self.anothers[another].channel_id + ','
+            anothers += self.anothers[another].web.name
             anothers += ';' if another != len(self.anothers) - 1 else ''
 
         try:

@@ -25,8 +25,13 @@ class Listener(Cog):
         if message.reference:
             try:
                 await on_sended_replaied(message)
+            except TypeError:
+                logging.info("Сообщение заблокировано")
             except:
-                await on_sended(message)
+                try:
+                    await on_sended(message)
+                except TypeError:
+                    logging.info("Сообщение заблокировано")
             return
         
 

@@ -108,6 +108,7 @@ class WebhookMessageSended:
         message_url (str): URL для просмотра сообщения (например, ссылка на Discord сообщение).
         author_id (str): Идентификатор автора сообщения.
         channel_id (str): Идентификатор канала, в котором было отправлено сообщение.
+        web (Web): Сеть, в рамках которого было отправлено это сообщение.
     """
     def __init__(
         self,
@@ -115,7 +116,8 @@ class WebhookMessageSended:
         webhook_url: str | None = None,
         message_url: str | None = None,
         author_id: int | str | None = None,
-        channel_id: int | str | None = None
+        channel_id: int | str | None = None,
+        web: Web | str | None = None
     ):
         """
         Инициализирует объект WebhookMessageSended.
@@ -129,6 +131,7 @@ class WebhookMessageSended:
             message_url (str | None): URL сообщения. По умолчанию None.
             author_id (int | str | None): ID автора. По умолчанию None.
             channel_id (int | str | None): ID канала. По умолчанию None.
+            web (Web | str | None): Сеть, в рамках которого было отправлено это сообщение. По умолчанию None.
 
         Исключения:
             ValueError: Если не передано ни одного параметра или не найдено
@@ -148,6 +151,9 @@ class WebhookMessageSended:
         """
         self.channel_id: str
         """Идентификатор канала, в котором было отправлено сообщение.
+        """
+        self.web: Web
+        """Сеть, в рамках которого было отправлено это сообщение.
         """
 
 class WebhookMessagesSended:
