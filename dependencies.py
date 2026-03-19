@@ -24,6 +24,8 @@ second_http: ClientSession
 a_transguild: Role
 m_transguild: Role
 a_shop: Role
+OPSK_role: Role
+leader_role: Role
 
 economicLogs: TextChannel
 
@@ -53,15 +55,18 @@ class Web:
             Exception: При ошибках базы данных.
         """
         self.name: str
-        """Название сети."""
         self.description: str
-        """Описание сети."""
         self.channels: str
-        """Строка с каналами и вебхуками в формате 'id,url;id,url...'."""
         self.groups: List[Dict[int, str]]
-        """Список словарей с channel_id и webhook_url."""
         self.bot: bool
-        """Может ли сторонний бот отправлять сообщения в эту сеть."""
+
+    async def get_guilds(self) -> Tuple[Guild | None]:
+        """
+        Возвращает все сервера, подключенные к сети
+
+        Returns:
+        Tuple[Guild | None] - Кортеж всех серверов, подключенные к сети. None, если получить сервер не удалось
+        """
 
     def set_name(self, new_name: str):
         """
@@ -96,7 +101,13 @@ class Web:
             webhook_url (str): URL вебхука.
         """
 
-    
+    def set_bot(self, value: bool):
+        """
+        Устанавливает новое правило касаемо ботов
+
+        Параметры:
+            value (bool): Новое значение
+        """
 
 class WebhookMessageSended:
     """
@@ -348,3 +359,21 @@ class ItemsView(View):
         """Товаров на страницу (12)"""
         self.select_callback: callable
         """Функция обратного вызова при выборе. Должна быть асинхронной и принимать Interaction"""
+
+class GuildPartner(Guild):
+    """А документация потом!"""
+    partner_name: str
+    partner_piar_text: str
+    partner_description: str
+    channel: TextChannel
+    marks: Tuple[str]
+
+    def __init__(self, partner_name: str, piar_text: str, desc: str, channel: TextChannel, marks: Tuple[str], id_: int | None = None, create: bool = False, original: Guild | None = None):
+        """Инициализирует объект или создает/обновляет запись если create=True"""
+
+    def change_name(self, name: str):
+        """Изменяет имя партнера"""
+    def change_piar_text(self, text: str):
+        """Изменяет рекламный текст партнера"""
+    def change_description(self, description: str):
+        """Изменяет описание партнера"""

@@ -5,6 +5,7 @@ import logging
 async def load_extensions():
     await deps.bot.load_extension('basic_commands')
     await deps.bot.load_extension('admin_commands')
+    await deps.bot.load_extension('guild_partner')
     await deps.bot.load_extension('economic')
 
 async def on_ready():

@@ -16,7 +16,7 @@ class Listener(Cog):
                     any(exception in message.content for exception in deps.automod_exceptions)
                 )
             ):
-            if not message.author.bot:
+            if (not message.author.bot) and (message.channel.get_all_webs()):
                 logging.info(f'Сообщение заблокировано на сервере {message.guild.name[:25]}')
             else:
                 logging.info("Сообщение заблокировано")
@@ -27,7 +27,7 @@ class Listener(Cog):
                 await on_sended_replaied(message)
             except TypeError:
                 logging.info("Сообщение заблокировано")
-            except:
+            except Exception:
                 try:
                     await on_sended(message)
                 except TypeError:

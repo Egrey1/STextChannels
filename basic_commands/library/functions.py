@@ -90,15 +90,16 @@ async def on_sended(message: Message):
                 webhooks.append(w)
             except:
                 continue
-
+        
         anothers: List[deps.WebhookMessageSended] = []
         for webhook in webhooks:
             try:
+                
                 files = [await attachment.to_file() for attachment in message.attachments] if message.attachments else []
                 try:
                     sent: Message = await webhook.send(
                         content=message.content,
-                        username=message.author.global_name,
+                        username=(message.author.global_name + ' | ' + message.guild.name)[:80],
                         avatar_url=message.author.display_avatar.url,
                         wait=True,
                         files=files[:10],
@@ -170,9 +171,13 @@ async def on_sended_replaied(message: Message):
     # sent_ids = []
 
     sendes = webhook_m_s.anothers
-    sendes.append(webhook_m_s.original)
+    # sendes.append(webhook_m_s.original)
     original: deps.WebhookMessageSended
     anothers: List[deps.WebhookMessageSended] = []
+
+    files = [
+        await attachment.to_file() 
+        for attachment in message.attachments] if message.attachments else []
 
     for webmes in sendes:
         if not webmes.web.bot and message.author.bot:
@@ -187,16 +192,12 @@ async def on_sended_replaied(message: Message):
                 webmes.web.name
             )
             continue
-
-        files = [
-            await attachment.to_file() 
-            for attachment in message.attachments] if message.attachments else []
         
         webhook: Webhook = Webhook.from_url(webmes.webhook_url, session=deps.global_http)
 
         sent: Message = await webhook.send(
                     content=f'> -# Ответ на {webmes.message_url}\n\n' + message.content,
-                    username=message.author.global_name,
+                    username=(message.author.global_name + ' | ' + message.guild.name)[:80],
                     avatar_url=message.author.display_avatar.url,
                     files=files[:10],
                     wait=True,
@@ -223,7 +224,44 @@ async def on_sended_replaied(message: Message):
                 webmes.web
             ))
 
-        
+    webmes = webhook_m_s.original
+    if int(webmes.channel_id) != message.channel.id:
+        webhook = Webhook.from_url(webmes.webhook_url, session=deps.global_http)
+        try:
+            allowed_mentions = AllowedMentions(
+                everyone=False,  
+                roles=False,     
+                users=True,      
+                replied_user=False 
+            )
+            allowed_mentions.users = [await deps.bot.fetch_user(int(webmes.author_id))]
+
+            sent: Message = (await webhook.send(
+                content=f'> -# Ответ на {webmes.message_url} <@{webmes.author_id}>\n\n' + message.content,
+                username=(message.author.global_name + ' | ' + message.guild.name)[:80],
+                avatar_url=message.author.display_avatar.url,
+                files=files[:10],
+                wait=True,
+                allowed_mentions=allowed_mentions
+            ))
+        except Exception as e:
+            # logging.error(f'Ошибка в on_sended_replaied: {e}')
+            sent = await webhook.send(
+                content=f'> -# Ответ на {webmes.message_url}\n\n' + message.content,
+                username=(message.author.global_name + ' | ' + message.guild.name)[:80],
+                avatar_url=message.author.display_avatar.url,
+                files=files[:10],
+                wait=True,
+                allowed_mentions=AllowedMentions.none()
+            )
+        anothers.append(deps.WebhookMessageSended(
+                sent.id, 
+                webhook.url, 
+                sent.jump_url, 
+                message.author.id, 
+                sent.channel.id,
+                webmes.web
+        ))
 
     if anothers and original:
         tmp = deps.WebhookMessagesSended(original, anothers)

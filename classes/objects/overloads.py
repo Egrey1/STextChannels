@@ -12,6 +12,14 @@ class NewMember(Member):
         mem = await self.from_capital()
         return any(deps.m_transguild.id == role.id for role in mem.roles) if mem else False
     
+    async def is_OPSK(self) -> bool: 
+        mem = await self.from_capital()
+        return any(deps.OPSK_role.id == role.id for role in mem.roles) if mem else False
+    
+    async def is_citadel_leader(self) -> bool:
+        mem = await self.from_capital()
+        return any(deps.leader_role.id == role.id for role in mem.roles) if mem else False
+
     def muted(self, value: datetime = None) -> bool | datetime:
         """Return False if not muted or expired, else expiration datetime."""
         if value is None:
@@ -170,7 +178,7 @@ class NewMember(Member):
     
     async def add_money(self, value: int, member: Member | None = None):
         try:
-            value = int(self.get_money()) + value
+            new_value = int(self.get_money()) + value
             with deps.economic_db as connect:
                 cursor = connect.cursor()
 
@@ -179,11 +187,11 @@ class NewMember(Member):
                                VALUES (?, ?)
                                ON CONFLICT(user_id) DO
                                UPDATE SET money = excluded.money
-                               """, (self.id, value))
+                               """, (self.id, new_value))
                 connect.commit()
                 cursor.close()
 
-                embed = Embed(title='Изменение баланса', description=f'У кого: {self.name}\На сколько: {value}\nНовый баланс: {self.get_money()}')
+                embed = Embed(title='Изменение баланса', description=f'У кого: {self.name}\nНа сколько: {value}\nНовый баланс: {new_value}')
                 if member:
                     embed.set_footer(text=f'Вызвал: {member.name}', icon_url=member.avatar.url)
 
@@ -207,6 +215,14 @@ class NewUser(User):
         mem = await self.from_capital()
         return any(deps.m_transguild.id == role.id for role in mem.roles) if mem else False
     
+    async def is_OPSK(self) -> bool: 
+        mem = await self.from_capital()
+        return any(deps.OPSK_role.id == role.id for role in mem.roles) if mem else False
+
+    async def is_citadel_leader(self) -> bool:
+        mem = await self.from_capital()
+        return any(deps.leader_role.id == role.id for role in mem.roles) if mem else False
+
     def muted(self, value: datetime = None) -> bool | None:
         if not value:
             try:
@@ -358,7 +374,7 @@ class NewUser(User):
     
     async def add_money(self, value: int, member: Member | None = None):
         try:
-            value = int(self.get_money()) + value
+            new_value = int(self.get_money()) + value
             with deps.economic_db as connect:
                 cursor = connect.cursor()
 
@@ -367,13 +383,13 @@ class NewUser(User):
                                VALUES (?, ?)
                                ON CONFLICT(user_id) DO
                                UPDATE SET money = excluded.money
-                               """, (self.id, value))
+                               """, (self.id, new_value))
                 connect.commit()
                 cursor.close()
 
                 embed = Embed(
                     title='Изменение баланса', 
-                    description=f'У кого: {self.name}\На сколько: {value}\nНовый баланс: {self.get_money()}'
+                    description=f'У кого: {self.name}\nНа сколько: {value}\nНовый баланс: {new_value}'
                     )
                 
                 if member:
@@ -455,7 +471,7 @@ class NewGuild(Guild):
     
     async def add_money(self, value: int, member: Member | None = None):
         try:
-            value = int(self.get_money()) + value
+            new_value = int(self.get_money()) + value
             with deps.economic_db as connect:
                 cursor = connect.cursor()
 
@@ -464,13 +480,13 @@ class NewGuild(Guild):
                                VALUES (?, ?)
                                ON CONFLICT(guild_id) DO
                                UPDATE SET money = excluded.money
-                               """, (self.id, value))
+                               """, (self.id, new_value))
                 connect.commit()
                 cursor.close()
 
                 embed = Embed(
                     title='Изменение баланса сервера', 
-                    description=f'У какого: {self.name}\На сколько: {value}\nНовый баланс: {self.get_money()}'
+                    description=f'У какого: {self.name}\nНа сколько: {value}\nНовый баланс: {new_value}'
                     )
                 
                 if member:
@@ -480,3 +496,31 @@ class NewGuild(Guild):
         except Exception as e:
             logging.error(f'Ошибка в add_money: {e}')
 
+    async def guild_partner(self) -> deps.GuildPartner | None:
+        try:
+            with deps.main_db as connect:
+                cursor = connect.cursor()
+
+                cursor.execute("""
+                               SELECT *
+                               WHERE id = ?
+                               """, (self.id, ))
+                fetch = cursor.fetchone()
+                cursor.close()
+
+                if not fetch:
+                    return None
+                marks = []
+
+                for mark in fetch['marks'].split(';'):
+                    if mark == 'т':
+                        mark = 'телемост'
+                    elif mark == 'м':
+                        mark = 'магазин'
+                    marks.append(mark)
+
+                channel = await self.fetch_channel(int(fetch['channel_id']))
+                
+                self = deps.GuildPartner(fetch['name'], fetch['piar_text'], fetch['description'], channel, tuple(marks), original=self)
+        except Exception as e:
+            logging.error(f'Ошибка в guild_partner: {e}')

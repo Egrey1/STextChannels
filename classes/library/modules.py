@@ -6,7 +6,7 @@ import dependencies as deps
 from sqlite3 import connect as con
 from sqlite3 import Row
 
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 from datetime import datetime
 

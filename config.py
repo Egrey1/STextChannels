@@ -23,13 +23,25 @@ def sql_creates():
                         """)
 
             cursor.execute("""
-                        CREATE TABLE IF NOT EXISTS "shares" (
+                            CREATE TABLE IF NOT EXISTS "shares" (
                                 "name"	TEXT UNIQUE,
                                 "description"	TEXT,
                                 "channels"	TEXT,
-	                            "bots"	TEXT DEFAULT NULL
-                            )
-                        """)
+                                "guilds"	TEXT,
+                                "bots"	TEXT DEFAULT NULL
+                            );
+                            """)
+            
+            cursor.execute("""
+                            CREATE TABLE IF NOT EXISTS "guild-partner" (
+                                "name"	TEXT,
+                                "description"	TEXT,
+                                "piar_text"	TEXT,
+                                "channel_id"	INTEGER,
+                                "marks"	TEXT,
+                                "id"	INTEGER UNIQUE
+                            );
+                           """)
 
             cursor.execute("""
                             CREATE TABLE IF NOT EXISTS "users" (
@@ -88,35 +100,40 @@ def firstConfig():
     deps.economic_db.row_factory =  Row
     sql_creates()
 
-    ds.Member.from_capital    = cls.NewMember.from_capital
-    ds.Member.is_a_transguild = cls.NewMember.is_a_transguild
-    ds.Member.is_m_transguild = cls.NewMember.is_m_transguild
-    ds.Member.is_a_shop       = cls.NewMember.is_a_shop
-    ds.Member.muted           = cls.NewMember.muted
-    ds.Member.where_muted     = cls.NewMember.where_muted
-    ds.Member.mute_web        = cls.NewMember.mute_web
-    ds.Member.unmute_web      = cls.NewMember.unmute_web
-    ds.Member.get_money       = cls.NewMember.get_money
-    ds.Member.set_money       = cls.NewMember.set_money
-    ds.Member.add_money       = cls.NewMember.add_money
+    ds.Member.from_capital      = cls.NewMember.from_capital
+    ds.Member.is_a_transguild   = cls.NewMember.is_a_transguild
+    ds.Member.is_m_transguild   = cls.NewMember.is_m_transguild
+    ds.Member.is_a_shop         = cls.NewMember.is_a_shop
+    ds.Member.is_OPSK           = cls.NewMember.is_OPSK
+    ds.Member.is_citadel_leader = cls.NewMember.is_citadel_leader
+    ds.Member.muted             = cls.NewMember.muted
+    ds.Member.where_muted       = cls.NewMember.where_muted
+    ds.Member.mute_web          = cls.NewMember.mute_web
+    ds.Member.unmute_web        = cls.NewMember.unmute_web
+    ds.Member.get_money         = cls.NewMember.get_money
+    ds.Member.set_money         = cls.NewMember.set_money
+    ds.Member.add_money         = cls.NewMember.add_money
     
 
-    ds.User.from_capital      = cls.NewUser.from_capital
-    ds.User.is_a_transguild   = cls.NewUser.is_a_transguild
-    ds.User.is_m_transguild   = cls.NewUser.is_m_transguild
-    ds.User.is_a_shop         = cls.NewUser.is_a_shop
-    ds.User.muted             = cls.NewUser.muted
-    ds.User.where_muted       = cls.NewUser.where_muted
-    ds.User.mute_web          = cls.NewUser.mute_web
-    ds.User.unmute_web        = cls.NewUser.unmute_web
-    ds.User.get_money         = cls.NewUser.get_money
-    ds.User.set_money         = cls.NewUser.set_money
-    ds.User.add_money         = cls.NewUser.add_money
+    ds.User.from_capital        = cls.NewUser.from_capital
+    ds.User.is_a_transguild     = cls.NewUser.is_a_transguild
+    ds.User.is_m_transguild     = cls.NewUser.is_m_transguild
+    ds.User.is_a_shop           = cls.NewUser.is_a_shop
+    ds.User.is_OPSK             = cls.NewUser.is_OPSK
+    ds.User.is_citadel_leader   = cls.NewUser.is_citadel_leader
+    ds.User.muted               = cls.NewUser.muted
+    ds.User.where_muted         = cls.NewUser.where_muted
+    ds.User.mute_web            = cls.NewUser.mute_web
+    ds.User.unmute_web          = cls.NewUser.unmute_web
+    ds.User.get_money           = cls.NewUser.get_money
+    ds.User.set_money           = cls.NewUser.set_money
+    ds.User.add_money           = cls.NewUser.add_money
 
 
-    ds.Guild.get_money = cls.NewGuild.get_money
-    ds.Guild.set_money = cls.NewGuild.set_money
-    ds.Guild.add_money = cls.NewGuild.add_money
+    ds.Guild.get_money          = cls.NewGuild.get_money
+    ds.Guild.set_money          = cls.NewGuild.set_money
+    ds.Guild.add_money          = cls.NewGuild.add_money
+    ds.Guild.guild_partner      = cls.NewGuild.guild_partner
 
 
     ds_abc.GuildChannel.get_all_webs = cls.New_TextChannel.get_all_webs
@@ -128,6 +145,7 @@ def firstConfig():
     deps.GuildShopItems         =   cls.GuildShopItems
     deps.Shop                   =   cls.Shop
     deps.ItemsView              =   cls.ItemsView
+    deps.GuildPartner           =   cls.GuildPartner
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -139,4 +157,6 @@ async def secondConfig():
     deps.a_transguild = await deps.capital.fetch_role   (1476193110592716880)
     deps.m_transguild = await deps.capital.fetch_role   (1476633956945363196)
     deps.a_shop       = await deps.capital.fetch_role   (1476896358542741639)
+    deps.OPSK_role    = await deps.capital.fetch_role   (1483718963283099649)
+    deps.leader_role  = await deps.capital.fetch_role   (1473362769599528992)
     deps.economicLogs = await deps.capital.fetch_channel(1479402331241189408)

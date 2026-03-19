@@ -8,7 +8,7 @@ class AddMoneyCommand:
             )
     @describe(value='Количество добавляемых', member='Если пусто выбирается сервер где была вызвана команда')
     async def add_money(self, ctx: Context, value: int, member: Member = None):
-        if not ctx.author.is_a_shop():
+        if not (await ctx.author.is_a_shop()):
             await ctx.send('Вы не имеете права использовать эту команду!', ephemeral=True)
             return
         if (member is None) and (ctx.message.reference is None):
@@ -34,7 +34,7 @@ class AddMoneyCommand:
     )
     @describe(value='Количество отнимаемых денег', member='Если пусто выбирается сервер где была вызвана команда')
     async def remove_money(self, ctx: Context, value: int, member: Member = None):
-        if not ctx.author.is_a_shop():
+        if not (await ctx.author.is_a_shop()):
             await ctx.send('Вы не имеете права использовать эту команду!', ephemeral=True)
             return
         if (member is None) and (ctx.message.reference is None):
@@ -74,7 +74,7 @@ class AddMoneyCommand:
     )
     @describe(value='Новое значение баланса', member='Пользователь или сервер (если пусто)')
     async def set_money(self, ctx: Context, value: int, member: Member = None):
-        if not ctx.author.is_a_shop():
+        if not (await ctx.author.is_a_shop()):
             await ctx.send('Вы не имеете права использовать эту команду!', ephemeral=True)
             return
         

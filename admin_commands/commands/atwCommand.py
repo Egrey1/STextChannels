@@ -1,5 +1,5 @@
 from ..library import hybrid_command, Context, deps, describe, transguild_admin, Interaction, View, Button, con, Embed, logging, ButtonStyle
-from ..modals import AtwModal
+from ..modals import AtwAddModal, AtwEditModal
 from discord.abc import GuildChannel
 
 class AddCommand:
@@ -44,7 +44,7 @@ class AddCommand:
                 await ctx.send('Укажите название межсерверной сети', ephemeral=True)
                 return
             
-            modal = AtwModal(name, ctx.bot_permissions.manage_webhooks)
+            modal = AtwAddModal(name, ctx.bot_permissions.manage_webhooks)
             if ctx.interaction:
                 await ctx.interaction.response.send_modal(modal)
                 return
@@ -136,5 +136,34 @@ class AddCommand:
                 await ctx.send(f'Межсервер {name} успешно удален из базы')
             except Exception:
                 await ctx.send('Что-то пошло не так!')
+        
+        elif option == 'edit':
+            if not name:
+                await ctx.send('Укажите название редактируемой сети')
+            try:
+                modal = AtwEditModal(name)
+            except ValueError:
+                await ctx.send('Неверно указано название межсерверной сети')
+                return
+            
+            if ctx.interaction:
+                await ctx.interaction.response.send_modal(modal)
+                return
+
+            async def if_is_not_interaction(interaction: Interaction):
+                if interaction.user.is_a_transguild:
+                    await interaction.response.send_modal(modal)
+                else:
+                    await interaction.response.send_message(
+                        'Вы не имеете права вызывать модальное окно администратора межсервера',
+                        ephemeral=True,
+                    )
+
+            view = View()
+            button = Button(label='👆', style=ButtonStyle.green)
+            button.callback = if_is_not_interaction
+            view.add_item(button)
+            await ctx.send('Нажми на кнопку чтобы открыть модальное окно', view=view)
+        
         else:
             await ctx.send('Неизвестная опция, используйте add/create/remove/delete', ephemeral=True)

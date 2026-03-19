@@ -1,7 +1,7 @@
 
 from discord.ext.commands import hybrid_command, Context, Cog, Bot
 from discord.app_commands import describe
-from discord import Message, Member, User, Interaction, Webhook, Embed, File, ButtonStyle
+from discord import Message, Member, User, Interaction, Webhook, Embed, File, ButtonStyle, TextStyle, TextChannel
 from discord.ui import Modal, TextInput, View, Button
 
 import dependencies as deps

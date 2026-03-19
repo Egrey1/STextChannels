@@ -1,30 +1,9 @@
-from ..library import con, deps, Row, List, Dict, logging
-from discord import Embed, ui, ButtonStyle, SelectOption, Interaction
+from ..library import con, deps, Row, List, Dict, logging, TextChannel, Tuple
+from discord import Embed, ui, ButtonStyle, SelectOption, Interaction, Guild
 from discord.ext.commands import Context
 
 class Web:
-    """
-    Класс для управления сетью (share) каналов с вебхуками.
-
-    Атрибуты:
-        name (str): Название сети.
-        description (str): Описание сети.
-        channels (str): Строка с каналами и вебхуками в формате 'id,url;id,url...'.
-        groups (List[Dict[int, str]]): Список словарей с channel_id и webhook_url.
-        bot (bool): Может ли сторонний бот отправлять сообщения в эту сеть.
-    """
     def __init__(self, name: str | None = None):
-        """
-        Инициализирует объект Web по названию сети.
-
-        Загружает данные из таблицы shares базы данных.
-
-        Параметры:
-            name (str | None): Название сети. По умолчанию None.
-
-        Исключения:
-            Exception: При ошибках базы данных.
-        """
         try: 
             with deps.main_db as connect:
                 cursor = connect.cursor()
@@ -37,13 +16,16 @@ class Web:
                 fetch = cursor.fetchone()
                 cursor.close()
 
+                if not fetch:
+                    raise ValueError('Неверные параметры конструктора')
+
                 self.name = fetch['name']
                 self.description = fetch['description']
                 self.channels = fetch['channels']
-                self.groups: List[Dict[int, str]]
+                self.groups: List[Dict[int, str]] = []
                 self.bot = bool(fetch['bots'])
 
-                for group in fetch['channels']:
+                for group in fetch['channels'].split(';'):
                     d = {
                         'channel_id': int(group.split(',')[0]),
                         'webhook_url': group.split(',')[1]
@@ -51,15 +33,20 @@ class Web:
                     self.groups.append(d)
         except Exception as e:
             logging.error(f'Ошибка в Web: {e}')
+            raise e
+
+    async def get_guilds(self):
+        guilds = []
+        for channel in self.channels.split(';'):
+            channel_id = channel.split(',')[0]
+            try:
+                guild = (await deps.bot.fetch_channel(int(channel_id))).guild
+                guilds.append(guild)
+            except:
+                guilds.append(None)
 
 
     def set_name(self, new_name: str):
-        """
-        Устанавливает новое название сети и обновляет в базе данных.
-
-        Параметры:
-            new_name (str): Новое название сети.
-        """
         try:
             with deps.main_db as connect:
                 cursor = connect.cursor()
@@ -76,12 +63,6 @@ class Web:
             logging.error(f'Ошибка в set_name: {e}')
     
     def set_description(self, new_description: str):
-        """
-        Устанавливает новое описание сети и обновляет в базе данных.
-
-        Параметры:
-            new_description (str): Новое описание сети.
-        """
         try:
             with deps.main_db as connect:
                 cursor = connect.cursor()
@@ -98,12 +79,6 @@ class Web:
             logging.error(f'Ошибка в set_description: {e}')
 
     def set_channels(self, channels: str):
-        """
-        Устанавливает новые каналы и обновляет в базе данных.
-
-        Параметры:
-            channels (str): Строка с каналами в формате 'id,url;id,url...'.
-        """
         try:
             with deps.main_db as connect:
                 cursor = connect.cursor()
@@ -119,13 +94,6 @@ class Web:
             logging.error(f'Ошибка в set_channels: {e}')
     
     def add_channel(self, channel_id: int, webhook_url: str):
-        """
-        Добавляет новый канал с вебхуком в сеть.
-
-        Параметры:
-            channel_id (int): ID канала.
-            webhook_url (str): URL вебхука.
-        """
         try:
             with deps.main_db as connect:
                 cursor = connect.cursor()
@@ -149,6 +117,24 @@ class Web:
                 )
         except Exception as e:
             logging.error(f'Ошибка в add_channel: {e}')
+
+    def set_bot(self, value: bool):
+        try:
+            with deps.main_db as connect:
+                cursor = connect.cursor()
+
+                cursor.execute("""
+                               UPDATE shares
+                               SET bots = ?
+                               WHERE name = ?
+                               """, ('1' if value else None, self.name))
+                connect.commit()
+                cursor.close()
+
+                self.bot = value
+        except Exception as e:
+            logging.error(f'Ошибка в set_bot: {e}')
+            raise e
 
 class WebhookMessageSended:
     
@@ -190,7 +176,7 @@ class WebhookMessageSended:
             self.message_url = message_url
             self.author_id = str(author_id)
             self.channel_id = str(channel_id)
-            self.web = web if issistance(web, Web) else Web(web)
+            self.web = web if isinstance(web, Web) else Web(web)
         else:
             try:
                 with deps.main_db as connect:
@@ -270,7 +256,7 @@ class WebhookMessagesSended:
                                         original.split(',')[2], 
                                         original.split(',')[3],
                                         original.split(',')[4],
-                                        original.split(',')[5]]
+                                        original.split(',')[5]
                     )
                     new_anothers = []
                     for another in anothers.split(';'):
@@ -280,7 +266,7 @@ class WebhookMessagesSended:
                                             another.split(',')[2], 
                                             another.split(',')[3],
                                             another.split(',')[4],
-                                            another.split(',')[5]]
+                                            another.split(',')[5]
                         ))
                     self.original = original
                     self.anothers: List[WebhookMessageSended] = new_anothers
@@ -750,3 +736,82 @@ class ItemsView(ui.View):
             self.page += 1
             self._update_view()
             await interaction.response.edit_message(view=self)
+
+
+class GuildPartner(Guild):
+    def __init__(self, partner_name: str, piar_text: str, desc: str, channel: TextChannel, marks: Tuple[str], id_: int | None = None, create: bool = False, original: Guild | None = None):
+        if not (partner_name or piar_text or desc or channel or marks):
+            logging.error('Пустые данные')
+            return
+        if original:
+            self = original
+        
+        self.partner_name           = partner_name
+        self.partner_piar_text      = piar_text
+        self.partner_description    = desc
+        self.channel                = channel
+        self.marks                  = marks
+
+        if create:
+            try:
+                with deps.main_db as connect:
+                    cursor = connect.cursor()
+
+                    cursor.execute("""
+                                   INSERT INTO `guild-partner` (name, piar_text, description, channel_id, marks, id)
+                                   VALUES (?, ?, ?, ?, ?, ?)
+                                   ON CONFLICT 
+                                   DO UPDATE SET name = excluded.name, piar_text = excluded.piar_text, description = excluded.description, channel_id = excluded.channel_id, marks = excluded.marks
+                                   """, (self.partner_name, self.partner_piar_text, self.partner_description, self.channel.id, ';'.join(marks), self.id if not id_ else id_))
+                    connect.commit()
+                    cursor.close()
+            except Exception as e:
+                logging.error(f'Ошибка в GuildPartner: {e}')
+
+    def change_name(self, new_name):
+        try:
+            with deps.main_db as connect:
+                cursor = connect.cursor()
+
+                cursor.execute("""
+                               UPDATE guild-partner
+                               SET name = ?
+                               WHERE id = ?
+                               """, (new_name, self.id))
+                connect.commit()
+                cursor.close()
+                self.partner_name = new_name
+        except Exception as e:
+            logging.error(f'Ошибка в change_name: {e}')
+    
+    def change_piar_text(self, piar_text):
+        try:
+            with deps.main_db as connect:
+                cursor = connect.cursor()
+
+                cursor.execute("""
+                               UPDATE guild-partner
+                               SET piar_text = ?
+                               WHERE id = ?
+                               """, (piar_text, self.id))
+                connect.commit()
+                cursor.close()
+                self.partner_piar_text = piar_text
+        except Exception as e:
+            logging.error(f'Ошибка в change_piar_text: {e}')
+
+    def change_description(self, description):
+        try:
+            with deps.main_db as connect:
+                cursor = connect.cursor()
+
+                cursor.execute("""
+                               UPDATE guild-partner
+                               SET description = ?
+                               WHERE id = ?
+                               """, (description, self.id))
+                connect.commit()
+                cursor.close()
+                self.partner_piar_text = description
+        except Exception as e:
+            logging.error(f'Ошибка в change_description: {e}')

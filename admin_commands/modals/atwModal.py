@@ -1,6 +1,6 @@
-from ..library import deps, Modal, TextInput, Interaction, Webhook, logging, Embed, List
+from ..library import deps, Modal, TextInput, Interaction, Webhook, logging, Embed, List, TextStyle, TextChannel
 
-class AtwModal(Modal):
+class AtwAddModal(Modal):
     def __init__(self, web_name: str, manage_webhooks: bool):
         super().__init__(title='Добаление нового канала к сети межсервера')
 
@@ -87,12 +87,47 @@ class AtwModal(Modal):
                 connect.commit()
                 cursor.close()
 
+                web = deps.Web(self.web_name)
+                channels: List[TextChannel] = []
+                for channel in web.channels.split(';'):
+                    channel = int(channel.split(',')[0])
+                    try:
+                        channels.append((await deps.bot.fetch_channel(channel)))
+                    except:
+                        continue
+
                 embed = Embed(title='Сервер успешно добавлен! Вот новый список каналов:',
-                            #description='\n'.join(webhook.guild.name + webhook.channel.name for webhook in webhooks)
-                            description='Пока недоступно для просмотра'
+                            description='\n'.join(channel.guild.name + ' - ' + f'[{channel.name}]({channel.jump_url})' for channel in channels)
                             )
                 embed.set_footer(text='Будьте внимательны! Проверка на ID канала вебхука и указанный ID отсутствует')
 
                 await interaction.response.send_message(embed=embed)
         except Exception as e:
             logging.error(f'Ошибка в on_submit: {e}')
+
+class AtwEditModal(Modal):
+    def __init__(self, web_name):
+        super().__init__(title='Изменение сети ' + web_name)
+        self.web_name = web_name
+        self.web = deps.Web(web_name)
+
+        self.description = TextInput(label='Описание', style=TextStyle.paragraph, placeholder='Описание межсерверной сети', min_length=1, max_length=512, required=False)
+        self.bot = TextInput(label='Может ли бот отправлять сообщения?', placeholder='0 для запрета, 1 для разрешения', max_length=1, required=False)
+
+        self.add_item(self.description)
+        self.add_item(self.bot)
+    
+    async def on_submit(self, interaction: Interaction):
+        new_desc = self.description.value
+        new_bot = False if self.bot.value == '0' else '1' if self.bot.value is not None else None
+
+        if new_desc is None and new_bot is None:
+            await interaction.response.send_message('Межсервер не был изменен!', ephemeral=True)
+            return
+        
+        if new_desc is not None:
+            self.web.set_description(new_desc)
+        if new_bot is not None:
+            self.web.set_bot(new_bot)
+        
+        await interaction.response.send_message('Изменения сохранены!', ephemeral=True)
