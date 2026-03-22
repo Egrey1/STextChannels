@@ -99,11 +99,12 @@ async def on_sended(message: Message):
                 try:
                     sent: Message = await webhook.send(
                         content=message.content,
-                        username=(message.author.global_name + ' | ' + message.guild.name)[:80],
+                        username=((message.author.global_name if message.author.global_name is not None else message.author.name) + ' | ' + message.guild.name)[:80],
                         avatar_url=message.author.display_avatar.url,
                         wait=True,
                         files=files[:10],
-                        allowed_mentions=AllowedMentions.none()
+                        allowed_mentions=AllowedMentions.none(),
+                        embeds=message.embeds
                     )
                     if sent.channel.id == message.channel.id:
                         await sent.delete()
@@ -149,19 +150,6 @@ async def on_sended_replaied(message: Message):
 
     webhook_m_s = deps.WebhookMessagesSended(message_id=replied.message_id)
 
-    # connect = con(deps.DATABASE_MAIN_PATH)
-    # connect.row_factory = Row
-    # cursor = connect.cursor()
-
-    # cursor.execute("""
-    #                 SELECT *
-    #                 FROM messages
-    #                 WHERE original LIKE ?
-    #                 OR anothers LIKE ?
-    #                 """, (f"%{replied.message_id},%", f"%{replied.message_id},%"))
-    # fetches = cursor.fetchall()
-    # connect.close()
-
     if not hasattr(webhook_m_s, 'anothers'):
         return
 
@@ -197,7 +185,7 @@ async def on_sended_replaied(message: Message):
 
         sent: Message = await webhook.send(
                     content=f'> -# Ответ на {webmes.message_url}\n\n' + message.content,
-                    username=(message.author.global_name + ' | ' + message.guild.name)[:80],
+                    username=((message.author.global_name if message.author.global_name is not None else message.author.name) + ' | ' + message.guild.name)[:80],
                     avatar_url=message.author.display_avatar.url,
                     files=files[:10],
                     wait=True,
@@ -238,7 +226,7 @@ async def on_sended_replaied(message: Message):
 
             sent: Message = (await webhook.send(
                 content=f'> -# Ответ на {webmes.message_url} <@{webmes.author_id}>\n\n' + message.content,
-                username=(message.author.global_name + ' | ' + message.guild.name)[:80],
+                username=((message.author.global_name if message.author.global_name is not None else message.author.name) + ' | ' + message.guild.name)[:80],
                 avatar_url=message.author.display_avatar.url,
                 files=files[:10],
                 wait=True,
@@ -262,6 +250,15 @@ async def on_sended_replaied(message: Message):
                 sent.channel.id,
                 webmes.web
         ))
+    else:
+        original = deps.WebhookMessageSended(
+                message.id, 
+                webmes.webhook_url, 
+                message.jump_url, 
+                message.author.id,
+                message.channel.id,
+                webmes.web
+        )
 
     if anothers and original:
         tmp = deps.WebhookMessagesSended(original, anothers)

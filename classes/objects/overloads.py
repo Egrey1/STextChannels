@@ -503,6 +503,7 @@ class NewGuild(Guild):
 
                 cursor.execute("""
                                SELECT *
+                               FROM `guild-partner`
                                WHERE id = ?
                                """, (self.id, ))
                 fetch = cursor.fetchone()
@@ -519,8 +520,8 @@ class NewGuild(Guild):
                         mark = 'магазин'
                     marks.append(mark)
 
-                channel = await self.fetch_channel(int(fetch['channel_id']))
+                channel = await deps.capital.fetch_channel(int(fetch['channel_id']))
                 
-                self = deps.GuildPartner(fetch['name'], fetch['piar_text'], fetch['description'], channel, tuple(marks), original=self)
+                return deps.GuildPartner(fetch['name'], fetch['piar_text'], fetch['description'], channel, tuple(marks), self.id)
         except Exception as e:
             logging.error(f'Ошибка в guild_partner: {e}')

@@ -69,6 +69,19 @@ def sql_creates():
                                 "balance"	INTEGER
                             );
                            """)
+            
+            cursor.execute("""
+                            CREATE TABLE IF NOT EXISTS "shop" (
+                                "guild_id"	INTEGER,
+                                "item_name"	TEXT,
+                                "item_id"	INTEGER UNIQUE,
+                                "description"	TEXT,
+                                "price"	INTEGER,
+                                "currency"	TEXT NOT NULL DEFAULT 'k'
+                            );
+                           """)
+            connect.commit()
+            cursor.close()
     except Exception as e:
         logging.error(f'Ошибка при создании таблиц: {e}')
         return
@@ -85,14 +98,15 @@ def firstConfig():
     deps.intents = ds.Intents.all()
 
 
-    deps.PREFIX = ('stc ', 'stc.', 'stc. ', '$$', '$$ ', ';;', ';; ', '₽₽', '₽₽ ', '₴₴', '₴₴ ')
+    # deps.PREFIX = ('stc ', 'stc.', 'stc. ', '$$', '$$ ', ';;', ';; ', '₽₽', '₽₽ ', '₴₴', '₴₴ ')
+    deps.PREFIX = ('voulran ', 'voulran')
     deps.automod_exceptions = ('https://cdn.discordapp.com/', 'https://tenor.com/', 'https://youtube.com/')
-    deps.commission = 0.45
+    deps.commission = 0.3
 
     deps.bot = deps.Bot(command_prefix=deps.PREFIX, intents=deps.intents, help_command=None)
     deps.TOKEN = getenv('TOKEN') # TOKEN HERE
 
-    deps.DATABASE_MAIN_PATH      =  'databases/main.db'
+    deps.DATABASE_MAIN_PATH      =  'databases/' + 'test_mode_' + 'main.db'
     deps.DATABASE_ECONOMIC_PATH  =  'databases/economic.db'
     deps.main_db                 =  con(deps.DATABASE_MAIN_PATH, check_same_thread=False)
     deps.economic_db             =  con(deps.DATABASE_ECONOMIC_PATH, check_same_thread=False)

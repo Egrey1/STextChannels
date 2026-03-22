@@ -1,4 +1,4 @@
-from ..library import con, deps, Row, List, Dict, logging, TextChannel, Tuple
+from ..library import con, deps, Row, List, Dict, logging, TextChannel, Tuple, Webhook
 from discord import Embed, ui, ButtonStyle, SelectOption, Interaction, Guild
 from discord.ext.commands import Context
 
@@ -307,6 +307,32 @@ class WebhookMessagesSended:
             logging.info(f'Ошибка в load: {e}')
             raise ValueError(f'Ошибка в load: {e}')
         
+    async def delete(self):
+        try:
+            for another in (self.anothers + [self.original]):
+                try:
+                    webhook = Webhook.from_url(another.webhook_url, session=deps.global_http)
+                    await webhook.delete_message(int(another.message_id))
+                except:
+                    continue
+            
+            with deps.main_db as connect:
+                cursor = connect.cursor()
+
+                cursor.execute("""
+                                DELETE FROM messages
+                                    WHERE rowid IN (
+                                    SELECT rowid
+                                    FROM messages
+                                    WHERE original LIKE ?
+                                    LIMIT 1
+                                );
+                               """, (f'%{self.original.message_id}%',))
+                connect.commit()
+                cursor.close()
+        except Exception as e:
+            logging.info(f'Ошибка в delete: {e}')
+
 
 class ShopItem:
     """
@@ -326,6 +352,7 @@ class ShopItem:
             description: str | None = None, 
             price: int | None = None, 
             guild_id: int | None = None,
+            currency: str | None = None,
             create: bool = False):
         """
         Инициализирует объект ShopItem.
@@ -366,19 +393,21 @@ class ShopItem:
                     self.description = description
                     self.price = price
                     self.guild_id = guild_id
+                    self.currency = currency
                     if not create:
                         cursor.close()
                         return
                     
                     cursor.execute("""
-                                   INSERT INTO shop (item_name, item_id, description, price, guild_id)
-                                   VALUES (?, ?, ?, ?, ?)
+                                   INSERT INTO shop (item_name, item_id, description, price, guild_id, currency)
+                                   VALUES (?, ?, ?, ?, ?, ?)
                                    ON CONFLICT(item_id) DO
                                    UPDATE SET 
                                    item_name = excluded.item_name, 
                                    description = excluded.description, 
                                    price = excluded.price, 
-                                   guild_id = excluded.guild_id
+                                   guild_id = excluded.guild_id,
+                                   currency = excluded.currency
                                    """, (self.name, self.id, self.description, self.price, self.guild_id))
                     connect.commit()
                     cursor.close()
@@ -393,6 +422,7 @@ class ShopItem:
                     self.description = None
                     self.price = None
                     self.guild_id = None
+                    self.currency = None
                     logging.error(f'Запись в БД не найдена! {id_ if id_ else name}')
                     return
 
@@ -401,6 +431,7 @@ class ShopItem:
                 self.description = fetch['description']
                 self.price = fetch['price']
                 self.guild_id = fetch['guild_id']
+                self.currency = fetch['currency']
         except Exception as e:
             logging.error(f'Ошибка в ShopItem: {e}')
 
@@ -444,7 +475,8 @@ class GuildShopItems:
                                         fetch['item_id'], 
                                         fetch['description'], 
                                         fetch['price'], 
-                                        fetch['guild_id']))
+                                        fetch['guild_id'],
+                                        fetch['currency']))
         except Exception as e:
             logging.error(f'Ошибка в GuildShopItems: {e}')
 
@@ -600,7 +632,7 @@ class Shop:
         page_items = self.items[start:end]
         for item in page_items:
             embed.add_field(
-                name=f"{item.name} - {item.price}",
+                name=f"{item.name} - {item.price}{item.currency}",
                 value=item.description,
                 inline=False
             )
@@ -738,23 +770,22 @@ class ItemsView(ui.View):
             await interaction.response.edit_message(view=self)
 
 
-class GuildPartner(Guild):
-    def __init__(self, partner_name: str, piar_text: str, desc: str, channel: TextChannel, marks: Tuple[str], id_: int | None = None, create: bool = False, original: Guild | None = None):
+class GuildPartner():
+    def __init__(self, partner_name: str, piar_text: str, desc: str, channel: TextChannel, marks: Tuple[str], id_: int | None, create: bool = False):
         if not (partner_name or piar_text or desc or channel or marks):
             logging.error('Пустые данные')
             return
-        if original:
-            self = original
         
         self.partner_name           = partner_name
         self.partner_piar_text      = piar_text
         self.partner_description    = desc
         self.channel                = channel
         self.marks                  = marks
+        self.id                     = id_
 
-        if create:
-            try:
-                with deps.main_db as connect:
+        try:
+            with deps.main_db as connect:
+                if create:
                     cursor = connect.cursor()
 
                     cursor.execute("""
@@ -762,11 +793,20 @@ class GuildPartner(Guild):
                                    VALUES (?, ?, ?, ?, ?, ?)
                                    ON CONFLICT 
                                    DO UPDATE SET name = excluded.name, piar_text = excluded.piar_text, description = excluded.description, channel_id = excluded.channel_id, marks = excluded.marks
-                                   """, (self.partner_name, self.partner_piar_text, self.partner_description, self.channel.id, ';'.join(marks), self.id if not id_ else id_))
+                                   """, (self.partner_name, self.partner_piar_text, self.partner_description, self.channel.id, ';'.join(marks), self.id ))
                     connect.commit()
                     cursor.close()
-            except Exception as e:
-                logging.error(f'Ошибка в GuildPartner: {e}')
+                else:
+                    cursor = connect.cursor()
+                    cursor.execute("""
+                                   SELECT *
+                                   FROM `guild-partner`
+                                   WHERE id = ?
+                                   """, (self.id))
+                    self.message_id = int(cursor.fetchone()['message_id'])
+            
+        except Exception as e:
+            logging.error(f'Ошибка в GuildPartner: {e}')
 
     def change_name(self, new_name):
         try:
@@ -815,3 +855,18 @@ class GuildPartner(Guild):
                 self.partner_piar_text = description
         except Exception as e:
             logging.error(f'Ошибка в change_description: {e}')
+
+    def set_message_id(self, id_: int):
+        try:
+            with deps.main_db as connect:
+                cursor = connect.cursor()
+
+                cursor.execute("""
+                               UPDATE `guild-partner`
+                               SET message_id = ?
+                               WHERE id = ?
+                               """, (id_, self.id))
+                connect.commit()
+                cursor.close()
+        except Exception as e:
+            logging.error(f'Ошибка в set_message_id: {e}')

@@ -1,4 +1,4 @@
-from discord import Member, User, TextChannel, Guild, Embed
+from discord import Member, User, TextChannel, Guild, Embed, Webhook
 from discord.ui import View, Button, Select
 
 import dependencies as deps

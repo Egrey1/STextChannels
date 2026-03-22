@@ -9,7 +9,7 @@ class GuildPartners:
             await ctx.send("Этот сервер не входит в состав Цитадели", ephemeral=True)
             return
         embed = Embed(title=guild_partner.partner_name, description=guild_partner.partner_description)
-        embed.set_footer(text='Метки сервера: ' + ','.join(guild_partner.marks))
+        embed.set_footer(text=('Метки сервера: ' + ','.join(guild_partner.marks)) if guild_partner.marks else None)
         await ctx.send(embed=embed, ephemeral=True)
     
     @hybrid_command(name='guild-partners', aliases=['gps', 'guild_partners', 'guildpartners', 'сервера-партнеры', "сервера_партнеры", "серверапартнеры", "сапы"])
@@ -17,10 +17,12 @@ class GuildPartners:
         """Оставлю реализацию на потом"""
     
     @hybrid_command(name='add_gp', aliases=['add_guild-partner', 'add_guild_partner', 'add_guildpartner', 'добавить_сп', "добавить_сервер-партнер", "добавить_сервер_партнер", "добавить_серверпартнер"])
-    async def add_gp(self, ctx: Context):
+    async def add_gp(self, ctx: Context, id_: int | None = None):
         if not (await ctx.author.is_OPSK() or await ctx.author.is_citadel_leader()):
             await ctx.send('Вы не имеете права использовать эту команду', ephemeral=True)
             return
+        
+        id_ = id_ if id_ else ctx.guild.id
         
         if ctx.interaction:
             modal = AddGPModal(ctx.guild.id)
@@ -29,7 +31,7 @@ class GuildPartners:
         
         async def bt_callback(interaction: Interaction):
             if interaction.user.id != ctx.author.id:
-                await interaction.response.send_message('Вы не имеете права исопльзовать чужую кнопку!', ephemeral=True)
+                await interaction.response.send_message('Вы не имеете права использовать чужую кнопку!', ephemeral=True)
                 return
             modal = AddGPModal(ctx.guild.id)
             await interaction.response.send_modal(modal)
@@ -42,18 +44,46 @@ class GuildPartners:
 
         await ctx.send('Для продолжения нажмите на кнопку', view=view)
     
+    @hybrid_command(name='edit_gp', aliases=['edit_guild-partner', 'edit_guild_partner', 'edit_guildpartner', 'изменить_сп', "изменить_сервер-партнер", "изменить_сервер_партнер", "изменить_серверпартнер"])
+    async def edit_gp(self, ctx: Context, id_: int | None = None):
+        if not (await ctx.author.is_OPSK() or await ctx.author.is_citadel_leader()):
+            await ctx.send('Вы не имеете права использовать эту команду', ephemeral=True)
+            return
+        
+        id_ = id_ if id_ else ctx.guild.id
+        
+        if ctx.interaction:
+            modal = AddGPModal(ctx.guild.id, True)
+            ctx.interaction.response.send_modal(modal)
+            return
+        
+        async def bt_callback(interaction: Interaction):
+            if interaction.user.id != ctx.author.id:
+                await interaction.response.send_message('Вы не имеете права использовать чужую кнопку!', ephemeral=True)
+                return
+            modal = AddGPModal(ctx.guild.id, True)
+            await interaction.response.send_modal(modal)
+        
+        view = View()
+        bt = Button(label='👆', style=ButtonStyle.green)
+
+        bt.callback = bt_callback
+        view.add_item(bt)
+
+        await ctx.send('Для продолжения нажмите на кнопку', view=view)
+
     @hybrid_command(name='dgp', aliases=['delete_gp', 'delete_guild-partner', 'delete_guild_partner', 'delete_guildpartner', 'удалить_сп', "удалить_сервер-партнер", "удалить_сервер_партнер", "удалить_серверпартнер"])
     async def delete_gp(self, ctx: Context, id_: int | None = None):
         if not (await ctx.author.is_OPSK() or await ctx.author.is_citadel_leader()):
             await ctx.send('Вы не имеете права использовать эту команду', ephemeral=True)
             return
+        id_ = id_ if id_ else ctx.guild.id
         
         async def bt_callback(interaction: Interaction):
             if not interaction.user.id == ctx.author.id:
-                await interaction.response.send_message('Вы не имеете права исопльзовать чужую кнопку!', ephemeral=True)
+                await interaction.response.send_message('Вы не имеете права использовать чужую кнопку!', ephemeral=True)
                 return
             
-            id_ = id_ if id_ else ctx.guild.id
             try:
                 with deps.main_db as connect:
                     cursor = connect.cursor()
@@ -61,7 +91,7 @@ class GuildPartners:
                     cursor.execute("""
                                    DELETE FROM guild_partners
                                    WHERE id = ?
-                                   """, (id_ ))
+                                   """, (id_, ))
                     connect.commit()
                     cursor.close()
                 await interaction.response.send_message('Сервер-партнер удален!', ephemeral=True)

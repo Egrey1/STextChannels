@@ -31,6 +31,13 @@ economicLogs: TextChannel
 
 automod_exceptions: Tuple[str]
 
+class CURRENCY:
+    """Структура всех валют"""
+    k: str = 'k'
+    """Кредит"""
+    kk: str = 'kk'
+    """Красный кредит"""
+
 class Web:
     """
     Класс для управления сетью (share) каналов с вебхуками.
@@ -212,6 +219,16 @@ class WebhookMessagesSended:
             sqlite3.Error: При ошибках работы с базой данных.
         """
 
+    async def delete(self):
+        """
+        Удаляет все сообщения, которые были отправлены в этой сети.
+
+        Удаляется так же запись в таблице messages.
+        
+        Исключения:
+            Exception: При ошибках базы данных.
+        """
+
 class ShopItem:
     """
     Класс для представления товара в магазине.
@@ -222,6 +239,7 @@ class ShopItem:
         description (str): Описание товара.
         price (int): Цена товара.
         guild_id (int): ID гильдии, к которой относится товар.
+        currency (str): Валюта товара.
     """
     def __init__(
             self, 
@@ -230,6 +248,7 @@ class ShopItem:
             description: str | None = None, 
             price: int | None = None, 
             guild_id: int | None = None,
+            currency: str | None = None,
             create: bool = False):
         """
         Инициализирует объект ShopItem.
@@ -258,6 +277,8 @@ class ShopItem:
         """Цена товара"""
         self.guild_id: int
         """ID гильдии, к которой относится товар"""
+        self.currency: str
+        """Валюта товара."""
 
 class GuildShopItems:
     """
@@ -367,8 +388,9 @@ class GuildPartner(Guild):
     partner_description: str
     channel: TextChannel
     marks: Tuple[str]
+    message_id: int
 
-    def __init__(self, partner_name: str, piar_text: str, desc: str, channel: TextChannel, marks: Tuple[str], id_: int | None = None, create: bool = False, original: Guild | None = None):
+    def __init__(self, partner_name: str, piar_text: str, desc: str, channel: TextChannel, marks: Tuple[str], id_: int, create: bool = False):
         """Инициализирует объект или создает/обновляет запись если create=True"""
 
     def change_name(self, name: str):
@@ -377,3 +399,5 @@ class GuildPartner(Guild):
         """Изменяет рекламный текст партнера"""
     def change_description(self, description: str):
         """Изменяет описание партнера"""
+    def set_message_id(self, id_: int):
+        """Устанавливает id партнерского сообщения"""

@@ -30,8 +30,9 @@ class AddCommand:
             )
             embed.add_field(name='add', value='Добавить канал к сети межсервера', inline=False)
             embed.add_field(name='create', value='Создать сеть межсервера', inline=False)
-            embed.add_field(name='remove', value='Удалить канал из сети межсервера (пока недоступно)', inline=False)
+            embed.add_field(name='remove', value='Удалить канал из всех сетей межсервера', inline=False)
             embed.add_field(name='delete', value='Удалить сеть межсервера', inline=False)
+            embed.add_field(name='edit', value='Отредактировать межсервер', inline=False)
             embed.set_footer(text='Значение по умолчанию: add')
             await ctx.send(embed=embed, ephemeral=True)
             return
