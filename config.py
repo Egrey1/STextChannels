@@ -98,15 +98,15 @@ def firstConfig():
     deps.intents = ds.Intents.all()
 
 
-    # deps.PREFIX = ('stc ', 'stc.', 'stc. ', '$$', '$$ ', ';;', ';; ', '₽₽', '₽₽ ', '₴₴', '₴₴ ')
-    deps.PREFIX = ('voulran ', 'voulran')
+    deps.PREFIX = ('stc ', 'stc.', 'stc. ', '$$', '$$ ', ';;', ';; ', '₽₽', '₽₽ ', '₴₴', '₴₴ ')
+    # deps.PREFIX = ('voulran ', 'voulran')
     deps.automod_exceptions = ('https://cdn.discordapp.com/', 'https://tenor.com/', 'https://youtube.com/')
     deps.commission = 0.3
 
     deps.bot = deps.Bot(command_prefix=deps.PREFIX, intents=deps.intents, help_command=None)
     deps.TOKEN = getenv('TOKEN') # TOKEN HERE
 
-    deps.DATABASE_MAIN_PATH      =  'databases/' + 'test_mode_' + 'main.db'
+    deps.DATABASE_MAIN_PATH      =  'databases/' + '' + 'main.db'
     deps.DATABASE_ECONOMIC_PATH  =  'databases/economic.db'
     deps.main_db                 =  con(deps.DATABASE_MAIN_PATH, check_same_thread=False)
     deps.economic_db             =  con(deps.DATABASE_ECONOMIC_PATH, check_same_thread=False)
