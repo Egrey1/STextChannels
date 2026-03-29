@@ -127,6 +127,10 @@ def firstConfig():
     ds.Member.get_money         = cls.NewMember.get_money
     ds.Member.set_money         = cls.NewMember.set_money
     ds.Member.add_money         = cls.NewMember.add_money
+    ds.Member.blocked_by        = cls.NewMember.blocked_by
+    ds.Member.set_blocked_by    = cls.NewMember.set_blocked_by
+    ds.Member.add_blocked_by    = cls.NewMember.add_blocked_by
+    ds.Member.remove_blocked_by = cls.NewMember.remove_blocked_by
     
 
     ds.User.from_capital        = cls.NewUser.from_capital
@@ -142,6 +146,11 @@ def firstConfig():
     ds.User.get_money           = cls.NewUser.get_money
     ds.User.set_money           = cls.NewUser.set_money
     ds.User.add_money           = cls.NewUser.add_money
+    ds.User.blocked_by          = cls.NewUser.blocked_by
+    ds.User.set_blocked_by      = cls.NewUser.set_blocked_by
+    ds.User.add_blocked_by      = cls.NewUser.add_blocked_by
+    ds.User.remove_blocked_by   = cls.NewUser.remove_blocked_by
+
 
 
     ds.Guild.get_money          = cls.NewGuild.get_money

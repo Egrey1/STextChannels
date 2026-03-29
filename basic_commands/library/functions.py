@@ -230,7 +230,7 @@ async def on_sended_replaied(message: Message):
                 avatar_url=message.author.display_avatar.url,
                 files=files[:10],
                 wait=True,
-                allowed_mentions=allowed_mentions
+                allowed_mentions=allowed_mentions if webmes.author_id not in message.author.blocked_by() else AllowedMentions.none()
             ))
         except Exception as e:
             # logging.error(f'Ошибка в on_sended_replaied: {e}')

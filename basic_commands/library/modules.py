@@ -1,5 +1,5 @@
 from discord.ext.commands import Context, Cog, hybrid_command
-from discord import TextChannel, Message, Webhook, AllowedMentions, Embed, AuditLogAction, Reaction, Member
+from discord import TextChannel, Message, Webhook, AllowedMentions, Embed, AuditLogAction, Reaction, Member, DMChannel
 
 from aiohttp import ClientSession
 

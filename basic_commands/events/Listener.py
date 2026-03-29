@@ -1,4 +1,4 @@
-from ..library import Cog, Message, deps, Reaction, Member, Webhook, TextChannel, dt
+from ..library import Cog, Message, deps, Reaction, Member, Webhook, TextChannel, dt, DMChannel
 from ..library import on_sended, on_edited, on_sended_replaied
 import asyncio
 import logging
@@ -26,8 +26,9 @@ class Listener(Cog):
             for web in webs:
                 for channel_id in web.groups:
                     try:
-                        dest = await deps.bot.fetch_channel(channel_id['channel_id'])
-                        await dest.typing()
+                        if channel_id['channel_id'] != source_channel.id:
+                            dest = await deps.bot.fetch_channel(channel_id['channel_id'])
+                            await dest.typing()
                     except Exception as e:
                         logging.warning(f"Ошибка trigger_typing для канала {channel_id}: {e}")
                         continue
@@ -40,6 +41,7 @@ class Listener(Cog):
     @Cog.listener()
     async def on_message(self, message: Message):
         if (
+                (isinstance(message.channel, DMChannel)) or
                 (message.webhook_id) or 
                 (message.content.startswith(deps.PREFIX)) or 
                 (

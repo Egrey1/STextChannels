@@ -197,13 +197,13 @@ class WebhookMessageSended:
                                     FROM messages
                                     WHERE anothers LIKE ?
                                     """, ('%' + need + '%', ))
-                    fetch = cursor.fetchone()[0]
+                    fetch = cursor.fetchone()
 
                     if not fetch:
                         cursor.execute("""
                                     SELECT original
                                     FROM messages
-                                    WHERE anothers LIKE ?
+                                    WHERE original LIKE ?
                                     """, ('%' + need + '%', ))
                         fetch = cursor.fetchone()[0]
                         cursor.close()
@@ -212,11 +212,12 @@ class WebhookMessageSended:
                         
                         splited = fetch.split(',')
                     else:
+                        fetch: str = fetch[0]
                         cursor.close()
                         ineed = fetch.find(need)
-                        fneed = fetch.find(need, ineed)
-                        lneed = fetch.rfind(need, 0, ineed)
-                        splited = fetch[fneed+1 : lneed].split(',')
+                        fneed = fetch.rfind(';', 0, ineed)
+                        lneed = fetch.find(';', ineed)
+                        splited = (fetch[fneed + 1 : lneed] + (fetch[lneed] if lneed == -1 else '')).split(',')
 
                     self.message_id, self.webhook_url, self.message_url, self.author_id, self.channel_id, self.web = (
                     splited[0], splited[1], splited[2], splited[3], splited[4], Web(splited[5]))
@@ -408,7 +409,7 @@ class ShopItem:
                                    price = excluded.price, 
                                    guild_id = excluded.guild_id,
                                    currency = excluded.currency
-                                   """, (self.name, self.id, self.description, self.price, self.guild_id))
+                                   """, (self.name, self.id, self.description, self.price, self.guild_id, self.currency))
                     connect.commit()
                     cursor.close()
                     return

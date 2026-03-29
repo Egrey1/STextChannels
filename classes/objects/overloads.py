@@ -203,6 +203,48 @@ class NewMember(Member):
         mem = await self.from_capital()
         return any(deps.a_shop.id == role.id for role in mem.roles) if mem else False
     
+    def blocked_by(self, custom_id = None) -> List[str]:
+        custom_id = custom_id or self.id
+        try:
+            with deps.main_db as connect:
+                cursor = connect.cursor()
+
+                cursor.execute("""
+                               SELECT blocked_by
+                               FROM users
+                               WHERE user_id = ?
+                               """, (custom_id,))
+                fetch = cursor.fetchone()
+                cursor.close()
+                return fetch['blocked_by'].split(';') if fetch and  fetch['blocked_by'] else []
+        except Exception as e:
+            logging.error(f'Ошибка в blocked_by: {e}')
+    
+    def set_blocked_by(self, new_value: str, custom_id = None):
+        if (not new_value) or (new_value == ';'):
+            new_value = None
+        custom_id = custom_id or self.id
+        try:
+            with deps.main_db as connect:
+                cursor = connect.cursor()
+
+                cursor.execute("""
+                               INSERT INTO users (user_id, blocked_by)
+                               VALUES (?, ?)
+                               ON CONFLICT(user_id) DO
+                               UPDATE SET blocked_by = excluded.blocked_by
+                               """, (self.id, new_value))
+                connect.commit()
+                cursor.close()
+        except Exception as e:
+            logging.error(f'Ошибка в set_blocked_by: {e}')
+
+    def add_blocked_by(self, id: int, custom_id = None):
+        self.set_blocked_by(';'.join(self.blocked_by() + [str(id)]), custom_id)
+    
+    def remove_blocked_by(self, id: int, custom_id = None):
+        self.set_blocked_by(';'.join(self.blocked_by()).replace(str(id), '').replace(';;', ';'), custom_id)
+
 class NewUser(User):
     async def from_capital(self) -> Member:
         return await deps.capital.fetch_member(self.id)
@@ -402,7 +444,49 @@ class NewUser(User):
     async def is_a_shop(self):
         mem = await self.from_capital()
         return any(deps.a_shop.id == role.id for role in mem.roles) if mem else False
-        
+    
+    def blocked_by(self, custom_id = None) -> List[str]:
+        custom_id = custom_id or self.id
+        try:
+            with deps.main_db as connect:
+                cursor = connect.cursor()
+
+                cursor.execute("""
+                               SELECT blocked_by
+                               FROM users
+                               WHERE user_id = ?
+                               """, (custom_id,))
+                fetch = cursor.fetchone()
+                cursor.close()
+                return fetch['blocked_by'].split(';') if fetch and fetch['blocked_by'] else []
+        except Exception as e:
+            logging.error(f'Ошибка в blocked_by: {e}')
+    
+    def set_blocked_by(self, new_value: str, custom_id = None):
+        if (not new_value) or (new_value == ';'):
+            new_value = None
+        custom_id = custom_id or self.id
+        try:
+            with deps.main_db as connect:
+                cursor = connect.cursor()
+
+                cursor.execute("""
+                               INSERT INTO users (user_id, blocked_by)
+                               VALUES (?, ?)
+                               ON CONFLICT(user_id) DO
+                               UPDATE SET blocked_by = excluded.blocked_by
+                               """, (self.id, new_value))
+                connect.commit()
+                cursor.close()
+        except Exception as e:
+            logging.error(f'Ошибка в set_blocked_by: {e}')
+
+    def add_blocked_by(self, id: int, custom_id = None):
+        self.set_blocked_by(';'.join(self.blocked_by() + [str(id)]), custom_id)
+    
+    def remove_blocked_by(self, id: int, custom_id = None):
+        self.set_blocked_by(';'.join(self.blocked_by()).replace(str(id), '').replace(';;', ';'), custom_id)
+
 
 class New_TextChannel(TextChannel):
     def get_all_webs(self) -> List[deps.Web]:
