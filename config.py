@@ -105,6 +105,7 @@ def firstConfig():
 
     deps.bot = deps.Bot(command_prefix=deps.PREFIX, intents=deps.intents, help_command=None)
     deps.TOKEN = getenv('TOKEN') # TOKEN HERE
+    deps.version = '1.0'
 
     test_mode = 'test_mode_'
     deps.DATABASE_MAIN_PATH      =  'databases/' + 'main.db'

@@ -3,3 +3,4 @@ from .transguildCommand import *
 from .deleteCommand import *
 from .helpCommand import *
 from .blocksCommand import *
+from .versionCommand import *

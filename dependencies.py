@@ -10,6 +10,7 @@ intents: Intents
 capital: Guild
 PREFIX: Tuple[str]
 commission: float
+version: str
 
 TOKEN: str
 

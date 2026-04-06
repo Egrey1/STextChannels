@@ -13,6 +13,7 @@ async def on_ready():
     await config.secondConfig()
     await deps.bot.tree.sync()
     logging.info(f'Бот {deps.bot.user} успешно запущен!')
+    logging.info(f'Текущая версия {deps.version}')
 
 if __name__ == "__main__":
     config.firstConfig() 
