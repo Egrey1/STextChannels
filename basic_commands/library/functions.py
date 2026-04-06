@@ -163,11 +163,11 @@ async def on_sended_replaied(message: Message):
     original: deps.WebhookMessageSended
     anothers: List[deps.WebhookMessageSended] = []
 
-    files = [
-        await attachment.to_file() 
-        for attachment in message.attachments] if message.attachments else []
-
     for webmes in sendes:
+        files = [
+            await attachment.to_file() 
+            for attachment in message.attachments] if message.attachments else []
+        
         if not webmes.web.bot and message.author.bot:
             raise TypeError('Бот пытается отправить сообщение в сеть, где ему делать это нельзя')
         if webmes.channel_id == str(message.channel.id):
@@ -213,6 +213,9 @@ async def on_sended_replaied(message: Message):
             ))
 
     webmes = webhook_m_s.original
+    files = [
+        await attachment.to_file() 
+        for attachment in message.attachments] if message.attachments else []
     if int(webmes.channel_id) != message.channel.id:
         webhook = Webhook.from_url(webmes.webhook_url, session=deps.global_http)
         try:

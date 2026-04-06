@@ -106,7 +106,8 @@ def firstConfig():
     deps.bot = deps.Bot(command_prefix=deps.PREFIX, intents=deps.intents, help_command=None)
     deps.TOKEN = getenv('TOKEN') # TOKEN HERE
 
-    deps.DATABASE_MAIN_PATH      =  'databases/' + '' + 'main.db'
+    test_mode = 'test_mode_'
+    deps.DATABASE_MAIN_PATH      =  'databases/' + 'main.db'
     deps.DATABASE_ECONOMIC_PATH  =  'databases/economic.db'
     deps.main_db                 =  con(deps.DATABASE_MAIN_PATH, check_same_thread=False)
     deps.economic_db             =  con(deps.DATABASE_ECONOMIC_PATH, check_same_thread=False)
@@ -183,3 +184,4 @@ async def secondConfig():
     deps.OPSK_role    = await deps.capital.fetch_role   (1483718963283099649)
     deps.leader_role  = await deps.capital.fetch_role   (1473362769599528992)
     deps.economicLogs = await deps.capital.fetch_channel(1479402331241189408)
+    deps.mutesLogs    = await deps.capital.fetch_channel(1490670194107093115)

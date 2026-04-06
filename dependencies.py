@@ -28,6 +28,7 @@ OPSK_role: Role
 leader_role: Role
 
 economicLogs: TextChannel
+mutesLogs: TextChannel
 
 automod_exceptions: Tuple[str]
 

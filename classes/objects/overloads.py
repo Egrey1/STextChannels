@@ -233,7 +233,7 @@ class NewMember(Member):
                                VALUES (?, ?)
                                ON CONFLICT(user_id) DO
                                UPDATE SET blocked_by = excluded.blocked_by
-                               """, (self.id, new_value))
+                               """, (custom_id, new_value))
                 connect.commit()
                 cursor.close()
         except Exception as e:
@@ -475,7 +475,7 @@ class NewUser(User):
                                VALUES (?, ?)
                                ON CONFLICT(user_id) DO
                                UPDATE SET blocked_by = excluded.blocked_by
-                               """, (self.id, new_value))
+                               """, (custom_id, new_value))
                 connect.commit()
                 cursor.close()
         except Exception as e:
