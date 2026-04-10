@@ -8,6 +8,8 @@ class Listener(Cog):
     _typing_state: dict[int, dict[int, float]] = {}
     # задачи, поддерживающие индикаторы печати для канала
     _typing_tasks: dict[int, asyncio.Task] = {}
+    delay = 1
+    waiter = False
 
     async def _typing_loop(self, source_channel: TextChannel):
         while True:
@@ -47,7 +49,8 @@ class Listener(Cog):
                 (
                     (
                         ('https://' in message.content) or 
-                        ('http://'  in message.content)
+                        ('http://'  in message.content) or
+                        ('discord.gg' in message.content)
                     ) and not 
                     any(exception in message.content for exception in deps.automod_exceptions)
                 )
@@ -60,6 +63,12 @@ class Listener(Cog):
                 logging.info("Сообщение заблокировано")
             return
         
+        await asyncio.sleep(self.delay)
+        try:
+            message = await message.channel.fetch_message(message.id)
+        except:
+            logging.info('Оригинальное сообщение было удалено')
+            return
         if message.reference:
             try:
                 await on_sended_replaied(message)
@@ -119,6 +128,9 @@ class Listener(Cog):
     async def on_message_delete(self, message: Message):
         if message.webhook_id:
             return
+        
+        await asyncio.sleep(self.delay + 5)
+        
         
         await deps.WebhookMessagesSended(message_id=message.id).delete()
 
